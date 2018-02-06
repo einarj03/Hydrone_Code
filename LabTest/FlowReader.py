@@ -1,5 +1,5 @@
 # to run this program, open terminal, cd into the right directory and type:
-# python Modbustest.py
+# python FlowReader.py
 
 # to install minimalmodbus open terminal and type: 
 # pip install minimalmodbus
@@ -54,11 +54,6 @@ with myFile:
         # print("Writing complete")
         t2 = datetime.now().strftime("%S.%f")
         t_delta = float(t2) - float(t1)
-        print(t2)
-        print(t_delta)
-
-        # t_delta is 0.2
-
 
         if (t_delta < 0.5 and t_delta > 0):
             sleep(.5-t_delta)

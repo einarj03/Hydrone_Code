@@ -1,0 +1,19 @@
+### Installing all the relevant tools ###
+
+Install xCode from the App Store
+
+Open terminal
+
+Type:
+>> gcc
+
+When the pop-up appears click install
+
+Install Homebrew
+>> /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+Install Python
+>> brew install python
+
+Install Pip
+>> sudo easy_install pip
