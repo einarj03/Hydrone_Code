@@ -70,8 +70,9 @@ v = zeros(1, total_points);
 v(1) = 0.0001;
 status = 0;
 brake_a = -1; %m/s^2
-limit_1 = 6; %m/s
+limit_1 = 7; %m/s
 limit_2 = 7; %m/s
+limit_3 = 8; %m/s
 
 %%
 
@@ -94,43 +95,62 @@ for i = 1:1:(total_points) %1659 = 1658m (last calculation) as starts at 1 (0m)
   k = floor((i-1)/(track_points)); %k = individual lap counter from 1 - 1659 each lap
   k = i - k*(track_points); %Corresponding to 0 - 1658m 
   
-% %   if k == 750 && v(i) > limit_1
-% %     b(i) = limit_1;
-% %     p = i;
-% %         while b(i) < v(i)
-% %         P(i-1) = 0;    
-% %         Fp(i-1) = 0;
-% %         a(i-1) = brake_a;
-% %         b(i-1) = sqrt(b(i)^2 - 2*a(i-1)*s);
-% %         i = i-1;
-% %         end
-% %         
-% %         for j = i:1:p
-% %         v(j) = b(j);
-% %         end
-% %         
-% %         i=j;
-% %              
-% %   end
+  if k == 97 && v(i) > limit_1
+    b(i) = limit_1;
+    p = i;
+        while b(i) < v(i)
+        P(i-1) = 0;    
+        Fp(i-1) = 0;
+        a(i-1) = brake_a;
+        b(i-1) = sqrt(b(i)^2 - 2*a(i-1)*s);
+        i = i-1;
+        end
+        
+        for j = i:1:p
+        v(j) = b(j);
+        end
+        
+        i=j;
+             
+  end
     
-% %     if k == 1560 & v(i) > limit_2
-% %     b(i) = limit_2;
-% %     p = i;
-% %         while b(i) < v(i)
-% %         P(i-1) = 0;    
-% %         Fp(i-1) = 0;
-% %         a(i-1) = brake_a;
-% %         b(i-1) = sqrt(b(i)^2 - 2*a(i-1)*s);
-% %         i = i-1;
-% %         end
-% %         
-% %         for j = i:1:p
-% %         v(j) = b(j);
-% %         end
-% %         
-% %         i=j;
-% %              
-% %     end
+    if k == 992 & v(i) > limit_2
+    b(i) = limit_2;
+    p = i;
+        while b(i) < v(i)
+        P(i-1) = 0;    
+        Fp(i-1) = 0;
+        a(i-1) = brake_a;
+        b(i-1) = sqrt(b(i)^2 - 2*a(i-1)*s);
+        i = i-1;
+        end
+        
+        for j = i:1:p
+        v(j) = b(j);
+        end
+        
+        i=j;
+             
+    end
+    
+    if k == 1240 & v(i) > limit_3
+    b(i) = limit_3;
+    p = i;
+        while b(i) < v(i)
+        P(i-1) = 0;    
+        Fp(i-1) = 0;
+        a(i-1) = brake_a;
+        b(i-1) = sqrt(b(i)^2 - 2*a(i-1)*s);
+        i = i-1;
+        end
+        
+        for j = i:1:p
+        v(j) = b(j);
+        end
+        
+        i=j;
+             
+    end
  
  
     
@@ -147,7 +167,7 @@ for i = 1:1:(total_points) %1659 = 1658m (last calculation) as starts at 1 (0m)
 %    (k >= pc3 & k <= (1659/s)) 
 
 %Throttle
-T_wheel = T_wheel10*0.4;
+T_wheel = T_wheel10*0.3;
 % % %     if i < (100/s) %First lap 
 % % %     T_wheel = T_wheel10*0.5;
 % % %     elseif i >= (100/s) & i < (700/s)
@@ -224,7 +244,7 @@ min_speed = 6;
             Fp(i) = 0;
         else
             Fp(i) = T_wheel(ceil(v(i)/v_wheel_counter))/r_wheel;%Power corresponding to velocity level
-            x(i) = T_wheel(1)/T_wheel10(1); %Throttle
+            throttle(i) = T_wheel(1)/T_wheel10(1); %Throttle
         end
         % 0 Force delivered above max speed as rachet system prevents
         % delivery of torque
@@ -235,61 +255,14 @@ min_speed = 6;
          Fp(i) = 0;
          else
          Fp(i) = T_wheel(ceil(v(i)/v_wheel_counter))/r_wheel;%Power corresponding to velocity level 
-         x(i) = T_wheel(1)/T_wheel10(1); %Throttle%Throttle
+         throttle(i) = T_wheel(1)/T_wheel10(1); %Throttle
          end
          
     elseif  v(i) <= max_speed & v(i) > min_speed & status == 0 %Coast after max reached
     Fp(i) = 0;
        
     end
-% Constant Velocity (when drag force is positive) or Fp proportional to Fd
-% 700m
-% elseif k >= cv1 & k < pc2
-%     
-%     if v(i) <= 0 
-%     break 
-%     end
-%     
-%     if Fd(i) > 0 
-%     
-%     Fp(i) = Fd(i);
-%     x(i) = (Fp(i)*r_wheel)/T_wheel(ceil(v(i)/v_wheel_counter)); %Throttle
-%         if x(i)>1
-%         Fp(i) = T_wheel10(ceil(v(i)/v_wheel_counter))/r_wheel;
-%         x(i) = 1;
-%         end    
-%         
-%     elseif Fd(i) <= 0
-%     Fp(i) = 0;
-%     x(i) = 0; %Throttle
-%     end
 
-% %Hill
-% elseif k >= cv2 & k < pc3
-%     
-%     if v(i) <= 0 
-%     break 
-%     end
-%     
-%     if Fd(i) > 0 
-%     
-%     Fp(i) = 0.8*Fd(i);
-%     x(i) = (Fp(i)*r_wheel)/T_wheel(ceil(v(i)/v_wheel_counter)); %Throttle
-%         if x(i)>1
-%         Fp(i) = T_wheel10(ceil(v(i)/v_wheel_counter))/r_wheel;
-%         x(i) = 1;
-%         end    
-%         
-%     elseif Fd(i) <= 0
-%     Fp(i) = 0;
-%     x(i) = 0; %Throttle
-%     end
-%     
-%     
-% %     
-% end
-
-    
 %%    
 %Efficiency and dynamic calculations
     Tm(i) = (Fp(i)*r_wheel/G); 
@@ -387,7 +360,7 @@ p_G = 764.6; %kg/m^3
 NCV_G = 42900; %kJ/kg 
 Fuel_eff_gasoline = Fuel_eff*NCV_G*p_G/(p_H*LCV_H*1000); %km/l
 
-base_eff = 643.92;
+base_eff = 552.869;
 Eff_Impr = 100*(Fuel_eff - base_eff)/Fuel_eff;
 
 disp(['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3']);
@@ -410,7 +383,7 @@ end
 
 %%
 %Plot the results
-x(total_points) = 0; %For plotting purposes (arrays of same length)
+throttle(total_points) = 0; %For plotting purposes (arrays of same length)
 t_c = [0,cumsum(t)];
 
 elevation = readtable('elevation.txt'); %m Single lap
@@ -422,7 +395,7 @@ end
 
 for q = 1:(total_points)
     if mod(q, track_points) == 0
-        i = 1940;
+        i = track_points;
     else
         i = int16(mod(q, track_points));
     end
@@ -430,9 +403,6 @@ for q = 1:(total_points)
     elevation_2(q) = elevation(i);
         
 end
-
-% % elevation_2 = [elevation_1,elevation_1,elevation_1,elevation_1,elevation_1,...
-% %                elevation_1,elevation_1,elevation_1,elevation_1,elevation_1];
 
 %First lap plot data
 t_1 = t(1:(track_points-1)); 
@@ -451,11 +421,11 @@ P_H_2 = P_H((total_points)-(track_points)+1:(total_points));
 Fd_2 = Fd((total_points)-(track_points)+1:(total_points));
 Fp_2 = Fp((total_points)-(track_points)+1:(total_points));
 
-v_2 = v_2*3.6;
-v_1 = v_1*3.6;
-v = v*3.6;
+v_2 = v_2;
+v_1 = v_1;
+v = v;
 
-d_1 = d(1:track_points);
+d_1 = d(1:track_points)*s;
 a_1 = a(1:track_points);
 
 % % Calculating braking forces
@@ -557,34 +527,64 @@ Fb_1 = Fb(1:track_points);
 % % 
 % % %1st lap
 % % 
+% % figure
+% % subplot(2,2,1)
+% % plot(t_c_1,v_1)
+% % title('Velocity')
+% % xlabel('Time (s)')
+% % ylabel('Velocity (kph)')
+% % text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% % text(50,10,['Maximum time: ',num2str(max_time),' s']);
+% % text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
+% % 
+% % 
+% % subplot(2,2,2)
+% % plot(t_c_1,P_1)
+% % title('Power')
+% % xlabel('Time (s)')
+% % ylabel('Power (W)')
+% % 
+% % subplot(2,2,3)
+% % plot(t_c_1,elevation_1)
+% % title('Elevation') 
+% % xlabel('Time (s)')
+% % ylabel('Elevation (m)')
+% % 
+% % subplot(2,2,4)
+% % plot(t_c_1,Fd_1,t_c_1,Fp_1)
+% % title('Resistive and Propulsive Force')
+% % xlabel('Time (s)')
+% % ylabel('Forces acting on the car (N)')
+
 figure
 subplot(2,2,1)
-plot(t_c_1,v_1)
+plot(d_1,v_1)
 title('Velocity')
-xlabel('Time (s)')
-ylabel('Velocity (kph)')
+xlabel('Distance (m)')
+ylabel('Velocity (m/s)')
 text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
 text(50,10,['Maximum time: ',num2str(max_time),' s']);
 text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
 
 
 subplot(2,2,2)
-plot(t_c_1,P_1)
+plot(d_1,P_1)
 title('Power')
-xlabel('Time (s)')
+xlabel('Distance (m)')
 ylabel('Power (W)')
 
 subplot(2,2,3)
-plot(t_c_1,elevation_1)
+plot(d_1,elevation_1)
 title('Elevation') 
-xlabel('Time (s)')
+xlabel('Distance (m)')
 ylabel('Elevation (m)')
 
 subplot(2,2,4)
-plot(t_c_1,Fd_1,t_c_1,Fp_1)
+plot(d_1,Fd_1,d_1,Fp_1)
 title('Resistive and Propulsive Force')
-xlabel('Time (s)')
+xlabel('Distance (m)')
 ylabel('Forces acting on the car (N)')
+
 % % 
 % % 
 % % figure
