@@ -80,11 +80,14 @@ class DashGUI:
 #            
         
         #Actions
-        self.start_button = Button(self.actSect, font=(None,12), text="Start", command=DM.DataManager.startIdealLap)
+        self.start_button = Button(self.actSect, font=(None,12), text="Start Ideal Lap", command=DM.DataManager.startIdealLap)
         self.start_button.grid(row=1, column=0)
-        
-        self.stop_button = Button(self.actSect, text="Stop",font=(None,12), command= DM.DataManager.stopLog)
+
+        self.start_log = Button(self.actSect, text="Start Log", font=(None,12), command=DM.DataManager.startLog)
         self.stop_button.grid(row=1, column=1)
+
+        self.stop_log = Button(self.actSect, text="Stop Log",font=(None,12), command=DM.DataManager.stopLog)
+        self.stop_log.grid(row=1, column=2)
 
         #self.close_button = Button(master, text="Exit", command= master.quit)
         #self.close_button.pack()

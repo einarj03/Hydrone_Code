@@ -6,7 +6,7 @@ addpath('circfit/');
 x = track_data(:,2);
 y = track_data(:,3);
 
-r = meancircfit(x,y,20);
+r = meancircfit(x,y,30);
 
 disp(['Size of r: ',num2str(size(r,2))]);
 while size(r) < 1940

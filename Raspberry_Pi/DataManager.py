@@ -19,17 +19,6 @@ import minimalmodbus
 
 from datetime import datetime
 
-# conifguring the fuel flow rate measuring parameters
-minimalmodbus.BAUDRATE = 9600
-minimalmodbus.PARITY = 'N'
-minimalmodbus.stopbits = 2
-# device_location is different for RPi
-# Command to find serial ports
-# python -m serial.tools.list_ports
-device_location = '/dev/ttyUSB0'
-
-instr = minimalmodbus.Instrument(device_location, 1)
-instr.address = 247
 # instr.read_float(0,3)
 # first arg:
     # 0: gas flow (l/min)
@@ -63,6 +52,23 @@ class DataManager():
     isCarVersion = True
     # reportTest = True
     emulate_gps = True
+    _isFlowLoggin = False
+
+
+    if _isFlowLoggin:
+
+        # conifguring the fuel flow rate measuring parameters
+        minimalmodbus.BAUDRATE = 9600
+        minimalmodbus.PARITY = 'N'
+        minimalmodbus.stopbits = 2
+        # device_location is different for RPi
+        # Command to find serial ports
+        # python -m serial.tools.list_ports
+        device_location = '/dev/ttyUSB0'
+
+        instr = minimalmodbus.Instrument(device_location, 1)
+        instr.address = 247
+
 
     ser = serial.Serial('/dev/ttyACM0', 9600, 8, 'N', 1, timeout=5)
 
@@ -164,61 +170,20 @@ class DataManager():
 
     @classmethod
     def readGasFlow(self):
-        gasFlow = instr.read_float(0,3)
+        if DataManager._isFlowLoggin:
+            gasFlow = instr.read_float(0,3)
+        else:
+            gasFlow = 0
         return gasFlow
 
 
     @classmethod
     def readTotalFlow(self):
-        totalFlow = instr.read_float(4,3)
+        if DataManager._isFlowLoggin:
+            totalFlow = instr.read_float(4,3)
+        else:
+            totalFlow = 0
         return totalFlow
-        
-    # logs one set of the data
-    @classmethod
-    def logData(self, dataString):
-        # only log data if this is being run in the car (avoids two sets of data being recorded)
-        if DataManager.isCarVersion is True:
-            # if the folders do not already exist, create them
-            if not os.path.exists(DataManager.folderDir):
-                os.mkdir(DataManager.folderDir)
-
-            # open or create the log file
-            file = open(DataManager.folderDir + DataManager.fileName, "a")
-
-            # if the file is empty, then add the headings
-            if os.stat(DataManager.folderDir + DataManager.fileName).st_size == 0:
-                file.write("Date,Time,RPM,Speed,Vsc,Vmain,Gas Flow,Total Flow,Longitude,Latitude,Altitude,Climb\n")
-
-            RPM = DataManager.getArduinoData(dataString, 'RPM')
-            speed = DataManager.getArduinoData(dataString, 'Speed')
-            Vsc = DataManager.getArduinoData(dataString, 'Vsc')
-            Vmain = DataManager.getArduinoData(dataString, 'Vmain')
-            gasFlow = DataManager.readGasFlow()
-            totalFlow = DataManager.readTotalFlow()
-
-            # record each pertinent piece of data
-            file.write(str(time.strftime("%d/%m/%Y")) + ",")
-            file.write(str(datetime.datetime.now().strftime("%H:%M:%S.%f")) + ",")
-            file.write(str(RPM) + ",")
-            file.write(str(speed) + ",")
-            file.write(str(Vsc) + ",")
-            file.write(str(Vmain) + ",")
-            file.write(str(gasFlow) + ",")
-            file.write(str(totalFlow) + ",")
-
-
-            if not (DataManager.isEmulate or DataManager.emulate_gps):
-                file.write(str(gpsSession.longitude) + ",")
-                file.write(str(gpsSession.latitude) + ",")
-                file.write(str(gpsSession.altitude) + ",")
-                file.write(str(gpsSession.climb) + ",")
-
-            file.write(str("\n"))
-
-            # flush and close the file after every recording to ensure that all
-            # data is saved even when the Pi is turned off suddenly
-            file.flush()
-            file.close()
 
     @classmethod
     def getArduinoDataString(self):
@@ -447,20 +412,72 @@ class DataManager():
                 # icon on the map
                 DataManager.startIdealLap()
 
+# logs one set of the data
     @classmethod
-    def beginLog(self):  
+    def logData(self, dataString):
+        # only log data if this is being run in the car (avoids two sets of data being recorded)
+        if DataManager.isCarVersion is True:
+            if DataManager.isRecording is True:
+                # if the folders do not already exist, create them
+                if not os.path.exists(DataManager.folderDir):
+                    os.mkdir(DataManager.folderDir)
+
+                # open or create the log file
+                file = open(DataManager.folderDir + DataManager.fileName, "a")
+
+                # if the file is empty, then add the headings
+                if os.stat(DataManager.folderDir + DataManager.fileName).st_size == 0:
+                    file.write("Date,Time,RPM,Speed,Vsc,Vmain,Gas Flow,Total Flow,Longitude,Latitude,Altitude,Climb\n")
+
+                RPM = DataManager.getArduinoData(dataString, 'RPM')
+                speed = DataManager.getArduinoData(dataString, 'Speed')
+                Vsc = DataManager.getArduinoData(dataString, 'Vsc')
+                Vmain = DataManager.getArduinoData(dataString, 'Vmain')
+                gasFlow = DataManager.readGasFlow()
+                totalFlow = DataManager.readTotalFlow()
+
+                # record each pertinent piece of data
+                file.write(str(time.strftime("%d/%m/%Y")) + ",")
+                file.write(str(datetime.datetime.now().strftime("%H:%M:%S.%f")) + ",")
+                file.write(str(RPM) + ",")
+                file.write(str(speed) + ",")
+                file.write(str(Vsc) + ",")
+                file.write(str(Vmain) + ",")
+                file.write(str(gasFlow) + ",")
+                file.write(str(totalFlow) + ",")
+
+
+                if not (DataManager.isEmulate or DataManager.emulate_gps):
+                    file.write(str(gpsSession.longitude) + ",")
+                    file.write(str(gpsSession.latitude) + ",")
+                    file.write(str(gpsSession.altitude) + ",")
+                    file.write(str(gpsSession.climb) + ",")
+
+                file.write(str("\n"))
+
+                # flush and close the file after every recording to ensure that all
+                # data is saved even when the Pi is turned off suddenly
+                file.flush()
+                file.close()
+
+    @classmethod
+    def startLog(self):  
         #Make sure previous one is stopped
-        DataManager.test = True
-        DataManager.stopLog()
+        # DataManager.test = True
+        # DataManager.stopLog()
         
-        DataManager.rwThread = Thrd.RWThread()
         DataManager.isRecording = True
-        DataManager.rwThread.start()
+
+        # DataManager.rwThread = Thrd.RWThread()
+        # DataManager.isRecording = True
+        # DataManager.rwThread.start()
        
     # stops the ideal lap icon from showing 
     @classmethod
     def stopLog(self):
-        DataManager.idealLap = False
+
+        DataManager.isRecording = False
+        # DataManager.idealLap = False
 
 ##        DataManager.isRecording = False
 ##        if DataManager.rwThread is not False:

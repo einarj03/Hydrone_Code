@@ -40,8 +40,8 @@ with myFile:
     # 4: total litres since start (l)
         t1 = datetime.now().strftime("%S.%f")
 
-        date = datetime.now().strftime("%d/%m/%Y") + ","
-        time = datetime.now().strftime("%H:%M:%S.%f") + ","
+        date = datetime.now().strftime("%d/%m/%Y")
+        time = datetime.now().strftime("%H:%M:%S.%f")
         gasFlow = instr.read_float(0,3)
         totalFlow = instr.read_float(4,3)
 

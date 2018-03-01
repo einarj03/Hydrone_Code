@@ -30,7 +30,7 @@ max_n = 4013; %rpm
 min_n = 3295; %rpm
 max_T = 1.711; %Nm 
 min_T = 0.038; %Nm
-G = 9; %input speed / output speed
+G = 5; %input speed / output speed
 
 %Efficiency of motor coefficients
 motor_coeff = [-1.89559261 25.04722276 -129.6267401 333.2213722 -447.3435524 ...
