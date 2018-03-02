@@ -18,7 +18,7 @@ import minimalmodbus
 
 from datetime import datetime
 
-# instr.read_float(0,3)
+# flowMeter.read_float(0,3)
 # first arg:
     # 0: gas flow (l/min)
     # 4: total litres since start (l)
@@ -69,8 +69,8 @@ class DataManager():
             # python -m serial.tools.list_ports
             device_location = '/dev/ttyUSB0'
 
-            instr = minimalmodbus.Instrument(device_location, 1)
-            instr.address = 247
+            flowMeter = minimalmodbus.Instrument(device_location, 1)
+            flowMeter.address = 247
 
         ser = serial.Serial('/dev/ttyACM0', 9600, 8, 'N', 1, timeout=5)
 
@@ -179,7 +179,7 @@ class DataManager():
         # Only attempt to read the flow meter data if this is the RPi and flow logging
         # is requested
         if DataManager._isFlowLoggin and isRaspberryPi:
-            gasFlow = instr.read_float(0,3)
+            gasFlow = flowMeter.read_float(0,3)
         else:
             gasFlow = 0
         return gasFlow
@@ -190,7 +190,7 @@ class DataManager():
         # Only attempt to read the flow meter data if this is the RPi and flow logging
         # is requested
         if DataManager._isFlowLoggin and isRaspberryPi:
-            totalFlow = instr.read_float(4,3)
+            totalFlow = flowMeter.read_float(4,3)
         else:
             totalFlow = 0
         return totalFlow
