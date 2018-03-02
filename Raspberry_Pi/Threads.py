@@ -4,7 +4,6 @@ import time
 #GPIO.setmode(GPIO.BCM)
 
 import DataManager as DM
-import Simulation as Sim
 
 class RWThread(Thread):
     def __init__(self):
