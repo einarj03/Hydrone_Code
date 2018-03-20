@@ -1,0 +1,149 @@
+‘set the speed variables
+speed_3 = 3
+speed_4 = 4
+speed_5 = 5
+speed_6 = 6
+speed_7 = 7
+speed_10 = 10
+min_speed = 5
+
+‘set the vehicle parameters
+wheel_diameter = 485
+gear_ratio = 10
+
+‘set the dead band
+min_input = 900
+
+accelerating = true
+
+‘wait for master switch to be activated
+wait_for_switch:
+switch = getvalue(_DIN, 1)
+if switch = 0 then
+	goto wait_for_switch
+end if
+
+‘once master switch is activated wait for throttle to be pushed to maximum
+Print("Button pressed\n")
+wait_for_input:
+input = getvalue(_ANAIN, 4)
+if input < 4000 then
+	goto wait_for_input
+end if
+
+Print("User started\n")
+
+top:
+
+‘continually check if the driver presses the master switch
+switch = getvalue(_DIN, 1)
+if switch = 1 then
+	goto wait_for_switch
+end if
+
+‘find the current RPM
+current_RPM = getvalue(_BLSPEED, 1)
+
+‘convert current RPM to current speed
+current_speed = current_RPM * wheel_diameter / (2 * gear_ratio * 1000)
+Print(current_RPM, "\n")
+
+‘see if driver is pressing accelerator
+input = getvalue(_ANAIN, 4)
+if input > min_input then
+	user_input = true
+	Print(" user is inputting\n")
+
+‘while driver is not pressing accelerator then carry out the autonomous control
+else
+	if user_input then
+		Print(" user input made accecelerating\n")
+		accelerating = true
+		user_input = false
+	end if
+	
+	‘read the values on the digital inputs
+	DigIn2 = getvalue(_DIN, 2)
+	DigIn3 = getvalue(_DIN, 3)
+	DigIn5 = getvalue(_DIN, 5)
+
+	‘converting the digital input permutation back into a speed range
+	if DigIn2 = 1 then
+		if DigIn3 = 1 then
+			if DigIn5 = 1 then
+				'Range 1
+				'between 5 and 7 m/s
+				RPM_min = 2 * gear_ratio * speed_5 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_7 * 1000 / wheel_diameter
+			else
+				'Range 2
+				'between 7 and 10 m/s
+				RPM_min = 2 * gear_ratio * speed_7 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_10 * 1000 / wheel_diameter
+			end if
+		else
+			if DigIn5 = 1 then
+				'Range 3
+				'between 5 and 8 m/s
+				RPM_min = 2 * gear_ratio * speed_5 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_8 * 1000 / wheel_diameter
+			else
+				'Range 4
+				'between 3 and 7 m/s
+				RPM_min = 2 * gear_ratio * speed_3 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_7 * 1000 / wheel_diameter
+			end if
+		end if
+	else
+		if DigIn3 = 1 then
+			if DigIn5 = 1 then
+				'Range 5
+				'between 7 and 10 m/s
+				RPM_min = 2 * gear_ratio * speed_7 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_10 * 1000 / wheel_diameter
+
+			else
+				'Range 6
+				'between 6 and 10 m/s
+				RPM_min = 2 * gear_ratio * speed_6 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_10 * 1000 / wheel_diameter
+
+			end if
+		else
+			if DigIn5 = 1 then
+				'Range 7
+				'between 5 and 10 m/s
+				RPM_min = 2 * gear_ratio * speed_5 * 1000 / wheel_diameter
+				RPM_max = 2 * gear_ratio * speed_10 * 1000 / wheel_diameter
+
+			else
+				'if no input, then keep same min and max
+			end if
+		end if
+
+	end if
+
+	‘carrying out the motor command
+	if accelerating then
+		if current_RPM < (RPM_max - 10) then
+			setcommand(_S, 1, RPM_max)
+			Print("accelerating \n")
+		else
+			Print("decelerating\n")
+			Print("max speed reached, decelerating")
+			accelerating = false
+		end if
+	else
+		if current_RPM < (RPM_min + 10) then
+			Print("min speed reached, accelerating")
+			accelerating = true
+			setcommand(_S, 1, RPM_max)
+			Print("accelerating \n")
+		else
+			Print("decelerating \n")
+		end if
+	end if
+
+end if
+
+goto top
