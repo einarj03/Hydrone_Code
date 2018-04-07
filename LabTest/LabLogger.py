@@ -1,8 +1,3 @@
-# to run this program, open terminal, cd into the right directory and type:
-# sudo python LabLogger.py
-
-# to install minimalmodbus open terminal and type: 
-# pip install minimalmodbus
 import minimalmodbus
 import time
 from time import sleep, strftime
@@ -19,8 +14,25 @@ flow_reader_address = 247
 dynaLoad_location = '/dev/cu.usbmodem1411'
 dynaLoad_address = 0
 
-flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
-dynaLoad_reader = minimalmodbus.Instrument(dynaLoad_location, dynaLoad_address)
+
+if os.path.exists(flow_device_location):
+	flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
+	_isFlowReading = True
+else:
+	Print("Either Flow Meter is not connected properly or the device location needs to be updated in the code")
+	Print("See README for instructions")
+	_isFlowReading = False
+
+if os.path.exists(dynaLoad_location):
+	dynaLoad_reader = minimalmodbus.Instrument(dynaLoad_location, dynaLoad_address)
+	_isDynaLoadReading = True
+else:
+	Print("Either Dynamic Load is not connected properly or the device location needs to be updated in the code")
+	Print("See README for instructions")
+	_isDynaLoadReading = False
+
+# flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
+# dynaLoad_reader = minimalmodbus.Instrument(dynaLoad_location, dynaLoad_address)
 nominal_voltage = 80
 nominal_current = 45
 nominal_power = 600
@@ -36,7 +48,7 @@ import sys
 import csv
 
 timeString = time.strftime("%d-%m-%y")
-folderDir = "LabData/LabData_" + timeString + '/'
+folderDir = "TestData/LabData_" + timeString + '/'
 
 if not os.path.exists(folderDir):
     os.system("sudo mkdir " + folderDir)
@@ -64,17 +76,26 @@ with myFile:
         t1 = datetime.now()
 
         time = datetime.now().strftime("%H:%M:%S.%f")
-        gasFlow = flow_reader.read_float(0,3)
-        totalFlow = flow_reader.read_float(4,3)
+        if _isFlowReading:
+	        gasFlow = flow_reader.read_float(0,3)
+	        totalFlow = flow_reader.read_float(4,3)
+	    else:
+	    	gasFlow = 0
+	    	totalFlow = 0
 
-        voltage_reading = dynaLoad_reader.read_register(507)
-        voltage = round((voltage_reading * nominal_voltage / float(max_resolution)), 3)
+        if _isDynaLoadReading:
+	        voltage_reading = dynaLoad_reader.read_register(507)
+	        voltage = round((voltage_reading * nominal_voltage / float(max_resolution)), 3)
 
-        current_reading = dynaLoad_reader.read_register(508)
-        current = round((current_reading * nominal_current / float(max_resolution)), 3)
-        
-        power_reading = dynaLoad_reader.read_register(509)
-        power = round((power_reading * nominal_power / float(max_resolution)), 2)
+	        current_reading = dynaLoad_reader.read_register(508)
+	        current = round((current_reading * nominal_current / float(max_resolution)), 3)
+	        
+	        power_reading = dynaLoad_reader.read_register(509)
+	        power = round((power_reading * nominal_power / float(max_resolution)), 2)
+	    else:
+	    	voltage = 0
+	    	current = 0
+	    	power = 0
         
         # Prints all of the data to the terminal
         os.system('cls' if os.name == 'nt' else 'clear')
