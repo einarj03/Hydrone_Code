@@ -59,7 +59,7 @@ while k <= 100
     k = k + 1;
 end
 
-% Minimum sequence time is 10 ?s
+% Minimum sequence time is 10 micro seconds
 for k = 1:1:100
     if t_d(k) == 0
         t_d(k) = 10;

@@ -2,11 +2,18 @@
 #http://www.danmandle.com/blog/getting-gpsd-to-work-with-python/
 
 import numpy as np
-from Tkinter import *
-import tkFont
+
 import DataManager as DM
 import time
-#import RPi.GPIO as GPIO
+
+# The tkinter module is different depending on whether operating on python 2 
+# or python 3. The computer runs python 3 and the RPi runs python 2
+if DM.isRaspberryPi:
+    from Tkinter import *
+    import tkFont
+else:
+    from tkinter import *
+    import tkinter.font as tkFont
                 
 class DashGUI: 
     def __init__(self, master):
@@ -71,20 +78,23 @@ class DashGUI:
         #Times
         Label(self.timesSect, text="Lap Times", font=(None,12), bg='black', fg='white').grid(row=0, columnspan=2)
         self.splitTimeLabels = range(3)
-        for i in range(3):
-            self.splitTimeLabels[i] = Label(self.timesSect, textvariable=self.splitTimes[i], font=(None,12), bg='black', fg='white')
-            self.splitTimeLabels[i].grid(row=i+1, column=1)
+        # for i in range(3):
+        #     self.splitTimeLabels[i] = Label(self.timesSect, textvariable=self.splitTimes[i], font=(None,12), bg='black', fg='white')
+        #     self.splitTimeLabels[i].grid(row=i+1, column=1)
 #        for i in range(10):
 #            self.splitTimeLabels[i] = Label(self.timesSect, textvariable=self.splitTimes[i], font=(None,12), bg='black', fg='white')
 #            self.splitTimeLabels[i].grid(row=i+1, column=2)
 #            
         
         #Actions
-        self.start_button = Button(self.actSect, font=(None,12), text="Start", command=DM.DataManager.startIdealLap)
+        self.start_button = Button(self.actSect, font=(None,12), text="Start Ideal Lap", command=DM.DataManager.startIdealLap)
         self.start_button.grid(row=1, column=0)
-        
-        self.stop_button = Button(self.actSect, text="Stop",font=(None,12), command= DM.DataManager.stopLog)
-        self.stop_button.grid(row=1, column=1)
+
+        self.start_log = Button(self.actSect, text="Start Log", font=(None,12), command=DM.DataManager.startLog)
+        self.start_log.grid(row=1, column=1)
+
+        self.stop_log = Button(self.actSect, text="Stop Log",font=(None,12), command=DM.DataManager.stopLog)
+        self.stop_log.grid(row=1, column=2)
 
         #self.close_button = Button(master, text="Exit", command= master.quit)
         #self.close_button.pack()

@@ -308,7 +308,7 @@ for i = 1:1:((total_points)-1) %t and E_H consumed between points (i and i+1)
     if P(i) == 0
         E_H(i) =  nominal_P_H * t(i);
     else
-        E_H(i) = P(i)*t(i)/(eff_h(i)*eff_c*eff_m(i)*0.75);
+        E_H(i) = P(i)*t(i)/(eff_h(i)*eff_c*eff_m(i));
     end
     
 end
@@ -340,7 +340,7 @@ p_G = 764.6; %kg/m^3
 NCV_G = 42900; %kJ/kg 
 Fuel_eff_gasoline = Fuel_eff*NCV_G*p_G/(p_H*LCV_H*1000); %km/l
 
-base_eff = 643.92;
+base_eff = 552.869;
 Eff_Impr = 100*(Fuel_eff - base_eff)/Fuel_eff;
 
 disp(['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3']);
@@ -383,9 +383,6 @@ for q = 1:(total_points)
     elevation_2(q) = elevation(i);
         
 end
-
-% % elevation_2 = [elevation_1,elevation_1,elevation_1,elevation_1,elevation_1,...
-% %                elevation_1,elevation_1,elevation_1,elevation_1,elevation_1];
 
 %First lap plot data
 t_1 = t(1:(track_points-1)); 

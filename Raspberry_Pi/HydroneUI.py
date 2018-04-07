@@ -1,4 +1,4 @@
-from Tkinter import Tk
+from tkinter import Tk
 import Lib
 
 #Setup the various cycle times
@@ -8,5 +8,3 @@ import Lib
 root = Tk()
 my_gui = Lib.DashGUI(root)
 root.mainloop()
-
-# test
