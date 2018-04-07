@@ -167,7 +167,7 @@ for i = 1:1:(total_points) %1659 = 1658m (last calculation) as starts at 1 (0m)
 %    (k >= pc3 & k <= (1659/s)) 
 
 %Throttle
-T_wheel = T_wheel10*0.5;
+T_wheel = T_wheel10*0.8;
 % % %     if i < (100/s) %First lap 
 % % %     T_wheel = T_wheel10*0.5;
 % % %     elseif i >= (100/s) & i < (700/s)

@@ -13,7 +13,7 @@ minimalmodbus.stopbits = 2
 
 # Command to find serial ports
 # python -m serial.tools.list_ports
-device_location = '/dev/cu.usbserial-1420'
+device_location = '/dev/cu.usbserial-14240'
 
 instr = minimalmodbus.Instrument(device_location, 1)
 instr.address = 247
