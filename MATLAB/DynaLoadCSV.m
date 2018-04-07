@@ -1,7 +1,16 @@
 % % % Program that turns the power demand into a csv for the dynamic load
+%{ ONCE THE FILE IS WRITTEN YOU MUST DO TWO THINGS
+% 1) Open excel and highlight all the cells, and re-select General as the
+% cell format
+% 2) Open the csv file in a text editor and copy and paste the following
+% commas to the bottom of the file
+,,,,,,,
+,,,,,,,
+,,,,,,,
+%}
+
 
 % Divide the power demand at the wheels by the motor efficiency
-
 for i = 1:1:total_points
     P_m(i) = P(i) / eff_m(i);
 end
