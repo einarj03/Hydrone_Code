@@ -55,4 +55,4 @@ The dynamic load location should look similar to the following:
 6. Run the code:
 >> sudo python LabLogger.py
 
-5. Type in your computer password if prompted to do so
+7. Type in your computer password if prompted to do so

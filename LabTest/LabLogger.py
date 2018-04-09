@@ -49,7 +49,7 @@ log_interval = 500 # milliseconds
 t_delta = 0
 runTime = 0
 
-dateString = time.strftime("%y-%m-%d")
+dateString = time.strftime("%Y-%m-%d")
 folderDir = "TestData/LabData_" + dateString + '/'
 
 if not os.path.exists(folderDir):
