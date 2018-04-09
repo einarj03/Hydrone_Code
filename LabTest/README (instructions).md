@@ -45,12 +45,14 @@ The flow meter location should look similar to the following:
 The dynamic load location should look similar to the following:
 /dev/cu.usbmodem1411
 
-Copy and paste these into the flow_device_location and the dynaLoad_location variables respectively. Be sure not to accidentally delete the quotation marks.
+3. Open the LabLogger.py file. Copy and paste the locations you found in Terminal into the flow_device_location and the dynaLoad_location variables respectively. Be sure not to accidentally delete the quotation marks.
 
-3. Change directory into the folder with the file:
->> cd Desktop/Hydrone_Code(master)/LabTest/
+4. Save the file.
 
-4. Run the code:
+5. Go back into Terminal. Change directory into the folder with the file:
+>> cd Desktop/Hydrone_Code-master/LabTest/
+
+6. Run the code:
 >> sudo python LabLogger.py
 
 5. Type in your computer password if prompted to do so
