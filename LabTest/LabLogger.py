@@ -49,20 +49,20 @@ log_interval = 500 # milliseconds
 t_delta = 0
 runTime = 0
 
-timeString = time.strftime("%y-%m-%d")
-folderDir = "TestData/LabData_" + timeString + '/'
+dateString = time.strftime("%y-%m-%d")
+folderDir = "TestData/LabData_" + dateString + '/'
 
 if not os.path.exists(folderDir):
     os.system("sudo mkdir " + folderDir)
 
 i = 1
-while os.path.exists(folderDir + "labData_" + timeString + "_test" + str(i) + ".csv"):
+while os.path.exists(folderDir + "labData_" + dateString + "_test" + str(i) + ".csv"):
 	i += 1
 
 
 
 data = []
-fileName = "lab_data_" + timeString + "_" + str(i) + ".csv"
+fileName = "lab_data_" + dateString + "_" + str(i) + ".csv"
 myFile = open(folderDir + fileName, 'a')
 
 if os.stat(folderDir + fileName).st_size == 0:

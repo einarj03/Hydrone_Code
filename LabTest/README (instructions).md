@@ -47,10 +47,10 @@ The dynamic load location should look similar to the following:
 
 Copy and paste these into the flow_device_location and the dynaLoad_location variables respectively. Be sure not to accidentally delete the quotation marks.
 
-2. Change directory into the folder with the file:
+3. Change directory into the folder with the file:
 >> cd Desktop/Hydrone_Code(master)/LabTest/
 
-3. Run the code:
+4. Run the code:
 >> sudo python LabLogger.py
 
-4. Type in your computer password if prompted to do so
+5. Type in your computer password if prompted to do so
