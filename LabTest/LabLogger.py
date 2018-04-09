@@ -25,7 +25,7 @@ if os.path.exists(flow_device_location):
 	flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
 	_isFlowReading = True
 else:
-	error = error + "Either Flow Meter is not connected properly or the device location needs to be updated in the code \n"
+	error = error + "Either FLOW METER is not connected properly or the device location needs to be updated in the code \n"
 	error = error + "See README for instructions \n"
 	_isFlowReading = False
 
@@ -33,8 +33,8 @@ if os.path.exists(dynaLoad_location):
     dynaLoad_reader = minimalmodbus.Instrument(dynaLoad_location, dynaLoad_address)
     _isDynaLoadReading = True
 else:
-    error = error + "Either Dynamic Load is not connected properly or the device location needs to be updated in the code \n"
-    error = error + "See README for instructions \n"
+    error = error + "Either DYNAMIC LOAD is not connected properly or the device location needs to be updated in the code \n"
+    error = error + "See README for instructions \n\n"
     _isDynaLoadReading = False
 
 # flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
