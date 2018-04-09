@@ -64,7 +64,7 @@ data = []
 logFile = open(folderDir + FM.FunctionManager.fileName(i), 'a')
 
 if os.stat(folderDir + FM.FunctionManager.fileName(i)).st_size == 0:
-    logFile.write("Time,Time Delta (s),Gas Flow (l/min),Total Flow (l),Voltage (V),Set Current (A),Actual Current (A),Power (W)\n")
+    logFile.write("Time,Time Delta (s),Runtime (s),Gas Flow (l/min),Total Flow (l),Voltage (V),Set Current (A),Actual Current (A),Power (W)\n")
 
 startTime = datetime.now()
 
@@ -101,9 +101,11 @@ with logFile:
         else:
             voltage = 0
             current = 0
+            set_current = 0
             power = 0
         
         runTime = int((datetime.now() - startTime).total_seconds())
+        m, s = divmod(runTime, 60)
 
         # Prints all of the data to the terminal
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -114,11 +116,11 @@ with logFile:
         print("Current: " + str(current) + " A")
         print("Power: " + str(power) + " W")
         print("Time Delta: " + str(t_delta) + " ms")
-        print("Runtime: " + str(runTime) + " s")
+        print("Runtime: " + str(m) + "mins " + str(s) + "secs")
         if error is not "":
             print("***ERROR***: " + error)
 
-        data = [currentTime,t_delta,gasFlow,totalFlow,voltage,set_current,current,power]
+        data = [currentTime,t_delta,runTime,gasFlow,totalFlow,voltage,set_current,current,power]
         writer = csv.writer(logFile)
         writer.writerow(data)
 

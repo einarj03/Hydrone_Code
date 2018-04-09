@@ -78,7 +78,8 @@ end
 
 % % Convert the power values into current values
 
-current_coeff = [3.4556*10^-5 4.1832*10^-2 -5.1399*10^-2];
+% current_coeff = [3.4556*10^-5 4.1832*10^-2 -5.1399*10^-2];
+current_coeff = [0 1/48 0];
 for k = 1:1:100
     if P_s(k) == 0
         I_s(k) = 0;
