@@ -3,3 +3,6 @@ LabTest/TestData/LabData*
 
 # Any general WAVE_I csv files
 MATLAB/WAVE_I.csv
+
+# Any pycache
+*/__pycache__
