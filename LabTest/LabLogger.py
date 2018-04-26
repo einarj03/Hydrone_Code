@@ -20,22 +20,22 @@ flow_reader_address = 247
 dynaLoad_location = '/dev/cu.usbmodem1411'
 dynaLoad_address = 0
 
-error = ""
+connection_error = ""
 
 if os.path.exists(flow_device_location):
 	flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
 	_isFlowReading = True
 else:
-	error = error + "\nEither FLOW METER is not connected properly or the device location needs to be updated in the code \n"
-	error = error + "See README for instructions \n"
+	connection_error += "\nEither FLOW METER is not connected properly or the device location needs to be updated in the code \n"
+	connection_error += "See README for instructions \n"
 	_isFlowReading = False
 
 if os.path.exists(dynaLoad_location):
     dynaLoad_reader = minimalmodbus.Instrument(dynaLoad_location, dynaLoad_address)
     _isDynaLoadReading = True
 else:
-    error = error + "\nEither DYNAMIC LOAD is not connected properly or the device location needs to be updated in the code \n"
-    error = error + "See README for instructions \n"
+    connection_error += "\nEither DYNAMIC LOAD is not connected properly or the device location needs to be updated in the code \n"
+    connection_error += "See README for instructions \n"
     _isDynaLoadReading = False
 
 # nominal_voltage = 80
@@ -79,46 +79,55 @@ with logFile:
 
         currentTime = datetime.now().strftime("%H:%M:%S.%f")
         if _isFlowReading:
-            gasFlow = flow_reader.read_float(0,3)
-            totalFlow = flow_reader.read_float(4,3)
+            try:
+                gasFlow = flow_reader.read_float(0,3)
+                totalFlow = flow_reader.read_float(4,3)
+            except ValueError:
+                flow_error = "\nFlow Meter READING error at "
+                flow_error = t1.strftime("%H:%M:%S.%f") + "\n"
         else:
             gasFlow = 0
             totalFlow = 0
 
         if _isDynaLoadReading:
-            voltage_reading = dynaLoad_reader.read_register(507)
-            # voltage = round(voltage_reading * nominal_voltage / float(max_resolution)), 3)
-            voltage = round(FM.FunctionManager.readValToActualVal(voltage_reading, "Voltage"),3)
+            try:
+                voltage_reading = dynaLoad_reader.read_register(507)
+                # voltage = round(voltage_reading * nominal_voltage / float(max_resolution)), 3)
+                voltage = round(FM.FunctionManager.readValToActualVal(voltage_reading, "Voltage"),2)
 
-            current_reading = dynaLoad_reader.read_register(508)
-            current = round(FM.FunctionManager.readValToActualVal(current_reading, "Current"),3)
-            
-            set_current_reading = dynaLoad_reader.read_register(502)
-            set_current = round(FM.FunctionManager.readValToActualVal(set_current_reading, "Current"),3)
+                current_reading = dynaLoad_reader.read_register(508)
+                current = round(FM.FunctionManager.readValToActualVal(current_reading, "Current"),2)
+                
+                set_current_reading = dynaLoad_reader.read_register(501)
+                set_current = round(FM.FunctionManager.readValToActualVal(set_current_reading, "Current"),2)
 
-            power_reading = dynaLoad_reader.read_register(509)
-            power = round(FM.FunctionManager.readValToActualVal(power_reading, "Power"), 2)
+                power_reading = dynaLoad_reader.read_register(509)
+                power = round(FM.FunctionManager.readValToActualVal(power_reading, "Power"), 1)
+            except ValueError:
+                dynaLoad_error = "\nDynamic Load READING error at "
+                dynaLoad_error = t1.strftime("%H:%M:%S.%f") + "\n"
         else:
             voltage = 0
             current = 0
             set_current = 0
             power = 0
         
+        printed_error = connection_error + flow_error + dynaLoad_error
         runTime = int((datetime.now() - startTime).total_seconds())
         m, s = divmod(runTime, 60)
 
         # Prints all of the data to the terminal
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("Flow: " + str(gasFlow) + " l/min")
-        print("Total Flow: " + str(totalFlow) + " l")
+        print("Flow: " + str(round(gasFlow, 3)) + " l/min")
+        print("Total Flow: " + str(round(totalFlow,3)) + " l")
         print("Voltage: " + str(voltage) + " V")
         print("Set Current " + str(set_current) + " A")
         print("Current: " + str(current) + " A")
         print("Power: " + str(power) + " W")
         print("Time Delta: " + str(t_delta) + " ms")
         print("Runtime: " + str(m) + "mins " + str(s) + "secs")
-        if error is not "":
-            print("***ERROR***: " + error)
+        if printed_error is not "":
+            print("***ERROR***: " + printed_error)
 
         data = [currentTime,t_delta,runTime,gasFlow,totalFlow,voltage,set_current,current,power]
         writer = csv.writer(logFile)
