@@ -11,27 +11,27 @@
 
 
 % Divide the power demand at the wheels by the motor efficiency
-for i = 1:1:total_points
-    P_m(i) = P(i) / eff_m(i);
-end
+% for i = 1:1:total_points
+%     P_FC(i) = P(i) / eff_m(i);
+% end
 
 k = 1;
 i = 1;
 while i < total_points
-    P_s(k) = P_m(i);
+    P_s(k) = P_FC(i);
     i_s = i;
     
-    condition_1 = (P_m(i) > 0);
+    condition_1 = (P_FC(i) > 0);
     while condition_1
         if i < total_points
             i = i + 1;
-            condition_1 = (P_m(i) > 0);
+            condition_1 = (P_FC(i) > 0);
         else
             condition_1 = 0;
         end
     end
     
-    P_e(k) = P_m(i-1);
+    P_e(k) = P_FC(i-1);
     t_d(k) = str2num(num2str((sum(t(1:i-1)) - sum(t(1:i_s)))*10^6,'%.0f'));
 %     Look at time, see which time gap it refers to
 %     convert to Current
@@ -40,11 +40,11 @@ while i < total_points
     
     i_s = i-1;
     
-    condition_2 = (P_m(i) == 0);
+    condition_2 = (P_FC(i) == 0);
     while condition_2
         if i < total_points
             i = i + 1;
-            condition_2 = (P_m(i) == 0);
+            condition_2 = (P_FC(i) == 0);
         else
             condition_2 = 0;
         end
@@ -77,8 +77,10 @@ for k = 1:1:100
 end
 
 % % Convert the power values into current values
-
+% % UI Curve Transformation for 500W
 % current_coeff = [3.4556*10^-5 4.1832*10^-2 -5.1399*10^-2];
+
+% % Using Cap boost converter
 current_coeff = [0 1/48 0];
 for k = 1:1:100
     if P_s(k) == 0

@@ -167,7 +167,7 @@ for i = 1:1:(total_points) %1659 = 1658m (last calculation) as starts at 1 (0m)
 %    (k >= pc3 & k <= (1659/s)) 
 
 %Throttle
-T_wheel = T_wheel10*0.65;
+T_wheel = T_wheel10*0.8;
 % % %     if i < (100/s) %First lap 
 % % %     T_wheel = T_wheel10*0.5;
 % % %     elseif i >= (100/s) & i < (700/s)
@@ -364,10 +364,10 @@ base_eff = 552.869;
 Eff_Impr = 100*(Fuel_eff - base_eff)/Fuel_eff;
 
 for i = 1:1:total_points
-    P_m(i) = P(i) / (eff_m(i)*eff_c);
+    P_FC(i) = P(i) / (eff_m(i)*eff_c);
 end
 
-max_P_m = max(P_m);
+max_P_m = max(P_FC);
 
 disp(['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3']);
 disp(['Elapsed time: ',num2str(elapsed_t),' s']);
@@ -724,7 +724,14 @@ ylabel('Forces acting on the car (N)')
 % figure
 % plot((min_T:0.01:max_T)
 
-                                                                                                                                                                                                                                       
+for i = 1:1:total_points
+    RPM(i) = v(i) / (2 * pi * r_wheel) * 60;
+    Wheel_T(i) = 60 * P(i) / (2 * pi* RPM(i));
+end
+
+% Find velocity of i
+% Calculate RPM from velocity
+% Calculate torque from RPM and P at wheels
     
     
     
