@@ -45,30 +45,30 @@ else:
 
 log_interval = 500 # milliseconds
 t_delta = 0
-runTime = 0
+run_time = 0
 
-dateString = time.strftime("%Y-%m-%d")
-folderDir = "TestData/LabData_" + dateString + '/'
+date_string = time.strftime("%Y-%m-%d")
+folder_dir = "TestData/LabData_" + date_string + '/'
 
-if not os.path.exists(folderDir):
-    os.system("sudo mkdir " + folderDir)
+if not os.path.exists(folder_dir):
+    os.system("sudo mkdir " + folder_dir)
 
 # def fileName(i):
-#     return "labData_" + dateString + "_test" + str(i) + ".csv"
+#     return "labData_" + date_string + "_test" + str(i) + ".csv"
 
 i = 1
-while os.path.exists(folderDir + FM.FunctionManager.fileName(i)):
+while os.path.exists(folder_dir + FM.FunctionManager.fileName(i)):
 	i += 1
 
 data = []
-logFile = open(folderDir + FM.FunctionManager.fileName(i), 'a')
+log_file = open(folder_dir + FM.FunctionManager.fileName(i), 'a')
 
-if os.stat(folderDir + FM.FunctionManager.fileName(i)).st_size == 0:
-    logFile.write("Time,Time Delta (s),Runtime (s),Gas Flow (l/min),Total Flow (l),Voltage (V),Set Current (A),Actual Current (A),Power (W)\n")
+if os.stat(folder_dir + FM.FunctionManager.fileName(i)).st_size == 0:
+    log_file.write("Time,Time Delta (s),Runtime (s),Gas Flow (l/min),Total Flow (l),Voltage (V),Set Current (A),Actual Current (A),Power (W)\n")
 
-startTime = datetime.now()
+start_time = datetime.now()
 
-with logFile:
+with log_file:
     while True:
 
     # first arg:
@@ -77,17 +77,17 @@ with logFile:
         # t1 = datetime.now().strftime("%S.%f")
         t1 = datetime.now()
 
-        currentTime = datetime.now().strftime("%H:%M:%S.%f")
+        current_time = datetime.now().strftime("%H:%M:%S.%f")
         if _isFlowReading:
             try:
-                gasFlow = flow_reader.read_float(0,3)
-                totalFlow = flow_reader.read_float(4,3)
+                gas_flow = flow_reader.read_float(0,3)
+                total_flow = flow_reader.read_float(4,3)
             except ValueError:
                 flow_error = "\nFlow Meter READING error at "
                 flow_error = t1.strftime("%H:%M:%S.%f") + "\n"
         else:
-            gasFlow = 0
-            totalFlow = 0
+            gas_flow = 0
+            total_flow = 0
 
         if _isDynaLoadReading:
             try:
@@ -113,13 +113,13 @@ with logFile:
             power = 0
         
         printed_error = connection_error + flow_error + dynaLoad_error
-        runTime = int((datetime.now() - startTime).total_seconds())
-        m, s = divmod(runTime, 60)
+        run_time = int((datetime.now() - start_time).total_seconds())
+        m, s = divmod(run_time, 60)
 
         # Prints all of the data to the terminal
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("Flow: " + str(round(gasFlow, 3)) + " l/min")
-        print("Total Flow: " + str(round(totalFlow,3)) + " l")
+        print("Flow: " + str(round(gas_flow, 3)) + " l/min")
+        print("Total Flow: " + str(round(total_flow,3)) + " l")
         print("Voltage: " + str(voltage) + " V")
         print("Set Current " + str(set_current) + " A")
         print("Current: " + str(current) + " A")
@@ -129,8 +129,8 @@ with logFile:
         if printed_error is not "":
             print("***ERROR***: " + printed_error)
 
-        data = [currentTime,t_delta,runTime,gasFlow,totalFlow,voltage,set_current,current,power]
-        writer = csv.writer(logFile)
+        data = [current_time,t_delta,run_time,gas_flow,total_flow,voltage,set_current,current,power]
+        writer = csv.writer(log_file)
         writer.writerow(data)
 
         t2 = datetime.now()
