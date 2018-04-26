@@ -179,7 +179,9 @@ class DataManager():
         # Only attempt to read the flow meter data if this is the RPi and flow logging
         # is requested
         if DataManager._isFlowLoggin and isRaspberryPi:
-            gasFlow = flowMeter.read_float(0,3)
+            try:
+                gasFlow = flowMeter.read_float(0,3)
+            except ValueError:
         else:
             gasFlow = 0
         return gasFlow
@@ -190,7 +192,9 @@ class DataManager():
         # Only attempt to read the flow meter data if this is the RPi and flow logging
         # is requested
         if DataManager._isFlowLoggin and isRaspberryPi:
-            totalFlow = flowMeter.read_float(4,3)
+            try:
+                totalFlow = flowMeter.read_float(4,3)
+            except ValueError:
         else:
             totalFlow = 0
         return totalFlow
