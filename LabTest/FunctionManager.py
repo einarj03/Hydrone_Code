@@ -12,8 +12,6 @@ class FunctionManager():
 	@classmethod
 	def readValToActualVal(self, reading, parameter):
 		
-		
-		
 		max_resolution = 52428
 
 		if parameter == "Voltage":

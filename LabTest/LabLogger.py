@@ -38,11 +38,6 @@ else:
     connection_error += "See README for instructions \n"
     _isDynaLoadReading = False
 
-# nominal_voltage = 80
-# nominal_current = 45
-# nominal_power = 600
-# max_resolution = 52428
-
 log_interval = 500 # milliseconds
 t_delta = 0
 run_time = 0
@@ -52,9 +47,6 @@ folder_dir = "TestData/LabData_" + date_string + '/'
 
 if not os.path.exists(folder_dir):
     os.system("sudo mkdir " + folder_dir)
-
-# def fileName(i):
-#     return "labData_" + date_string + "_test" + str(i) + ".csv"
 
 i = 1
 while os.path.exists(folder_dir + FM.FunctionManager.fileName(i)):
