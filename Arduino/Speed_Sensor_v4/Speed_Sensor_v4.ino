@@ -1,6 +1,3 @@
-/*
-Sebastiaan Crane Spedometer code adapted from http://diyhacking.com/projects/ArduinoHallEffect.ino
-*/
 //Var For Speedmeter
 volatile byte detect_nth_ping = 0;
 // used to store fraction of revolution

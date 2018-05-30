@@ -38,7 +38,7 @@ if isRaspberryPi:
     GPIO.setwarnings(False)
 
 class DataManager():
-    isEmulate = False
+    isEmulate = True
     idealLap = False
     isRecording = False
     startTime = 0
@@ -182,6 +182,8 @@ class DataManager():
             try:
                 gasFlow = flowMeter.read_float(0,3)
             except ValueError:
+                # do nothing about this error
+                print("One instance of ValueError")   
         else:
             gasFlow = 0
         return gasFlow
@@ -195,6 +197,7 @@ class DataManager():
             try:
                 totalFlow = flowMeter.read_float(4,3)
             except ValueError:
+                print("One instance of ValueError")
         else:
             totalFlow = 0
         return totalFlow
@@ -249,20 +252,25 @@ class DataManager():
             RPM = secondsPerMin*millisPerS/(time_diff)*(n_pings/pingsPerRev)
             return round(RPM, 1)
         elif desiredData == 'Speed':
-
-            # store and array of the last 6 points for each point, then you can take an average for each point
-            # So send every point and then 
-            speed = 2.0*math.pi*wheelRadius*millisPerS/(time_diff)*(n_pings/pingsPerRev)
-            # m/s
+            if DataManager.isEmulate:
+                speed = random.uniform(6,8.5)
+            else:
+                # store and array of the last 6 points for each point, then you can take an average for each point
+                # So send every point and then 
+                speed = 2.0*math.pi*wheelRadius*millisPerS/(time_diff)*(n_pings/pingsPerRev)
+                # m/s
             return round(speed, 1)
 
 
         elif desiredData == 'Vsc':
-            # Super capacitor voltage
+            if DataManager.isEmulate:
+                Vsc = random.uniform(15,30)
+            else:
+                # Super capacitor voltage
 
-            # A0 outputs values between 0-1023 for a voltage range of 0-5V
-            # The resistor setup reduces the read voltage by a factor of 26
-            Vsc = A0 * 5 * 26 / 1023
+                # A0 outputs values between 0-1023 for a voltage range of 0-5V
+                # The resistor setup reduces the read voltage by a factor of 26
+                Vsc = A0 * 5 * 26 / 1023
             return round(Vsc, 1)
 
         elif desiredData == 'Vmain':

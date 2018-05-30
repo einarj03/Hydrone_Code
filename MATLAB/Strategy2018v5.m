@@ -1,6 +1,6 @@
-%Optimisation of Driving Stategy
-%Jason Biddlecombe
-%08/12/2016
+%Driving Stategy Simulation
+%Einar Jonsson
+%08/04/2016
 clear
 clc
 
@@ -15,7 +15,7 @@ lap_time = max_time/no_laps; %s
 average_v = track_length/lap_time;
 cr = 0.0050; %rolling resistance (safety factor to 0.004)
 g = 9.81; %m/s^2
-mass_car = 45; %kg 
+mass_car = 42; %kg 
 mass_driver = 50; %kg
 m = mass_car + mass_driver; %kg
 p_air = 1.225; %kg/m^3 air density
@@ -37,19 +37,19 @@ motor_coeff = [-1.89559261 25.04722276 -129.6267401 333.2213722 -447.3435524 ...
 294.3967411 16.38573456 ];
    
 %%
-g_line = (max_T-min_T)/(min_n-max_n);
-c = min_T - g_line * max_n;
+% g_line = (max_T-min_T)/(min_n-max_n);
+% c = min_T - g_line * max_n;
 
-for n_motor = 1:1:(min_n-1)
-    T_motor(n_motor) = max_T;
+for n_motor = 1:1:max_n
+    T_motor(n_motor) = 9.855*10^-7 * n_motor^2 + 7.556*10^-3 * n_motor + 14.50;
+    if T_motor > 2.1
+        T_motor = 2.1;
+    end
+    if T_motor < 0
+        T_motor = 0;
+    end
 end
 
-for n_motor = min_n:1:max_n
-    T_motor(n_motor) = g_line * n_motor + c ; %Nm
-end
-
-%Throttle inclusion
-T_motor = T_motor;
 %%
 
 n_motor = [1:1:max_n];
@@ -59,7 +59,7 @@ T_wheel10 = T_wheel; %Default
 n_wheel = n_motor/G; %rpm rotational speed of the wheel
 r_wheel = 0.239; %m radius of wheel
 v_wheel = n_wheel * (2*pi/60) * r_wheel; %m/s speed of the wheel
-P_wheel = T_wheel .* n_wheel * (2*pi/60); %W power delivered to the wheel
+% P_wheel = T_wheel .* n_wheel * (2*pi/60); %W power delivered to the wheel
 v_wheel_counter = v_wheel(2)-v_wheel(1); %Velocity steps for power level calulation
 v_limit = max(v_wheel);
 %Initial conditions for iteration
@@ -167,7 +167,7 @@ for i = 1:1:(total_points) %1659 = 1658m (last calculation) as starts at 1 (0m)
 %    (k >= pc3 & k <= (1659/s)) 
 
 %Throttle
-T_wheel = T_wheel10*0.5;
+T_wheel = T_wheel10*1;
 % % %     if i < (100/s) %First lap 
 % % %     T_wheel = T_wheel10*0.5;
 % % %     elseif i >= (100/s) & i < (700/s)
@@ -266,17 +266,31 @@ min_speed = 6;
 %%    
 %Efficiency and dynamic calculations
     Tm(i) = (Fp(i)*r_wheel/G); 
-   
-    eff_m(i) = 0.01 * (motor_coeff(1)*Tm(i)^6 + motor_coeff(2)*Tm(i)^5 + motor_coeff(3)*Tm(i)^4+ motor_coeff(4)*Tm(i)^3 + ...
-               motor_coeff(5)*Tm(i)^2 + motor_coeff(6)*Tm(i) + motor_coeff(7));
-
+    
     P(i) = Fp(i)*v(i);
     a(i) = (Fp(i) - Fd(i))/m;
     v(i+1) = sqrt(2*a(i)*s + v(i)^2);
-%     n_whl(i) = v(i) * (60/2*pi) / r_wheel;
-%     n_mtr(i) = n_whl(i) * G;
+    n_whl(i) = v(i) * (60/(2*pi)) / r_wheel;
+    n_mtr(i) = n_whl(i) * G;
+
+%   Using current Torque calc eff at 1500 RPM and 3000RPM
+    eff_1500_coeff = [2.068*10^-2 -1.689*10^-2 9.394*10^-1];
+    eff_3000_coeff = [2.208*10^-2 3.850*10^-2 9.038*10^-1];
+    eff_1500(i) = eff_1500_coeff(1)*Tm(i)^2 + eff_1500_coeff(2)*Tm(i) + eff_1500_coeff(3);
+    eff_3000(i) = eff_3000_coeff(1)*Tm(i)^2 + eff_3000_coeff(2)*Tm(i) + eff_3000_coeff(3);
     
-    if isreal(v(i+1)) == 0;
+%   If current RPM > 3000 use eff at 3000RPM
+    if n_mtr(i) >= 3000
+        eff_m(i) = eff_3000(i);
+    elseif n_mtr(i) < 1500
+        eff_m(i) = 0.6;
+    else
+        eff_m(i) = eff_1500(i) + (eff_3000(i) - eff_1500(i))*(n_mtr(i) - 1500)/(3000-1500);
+    end
+
+%   Using Eff at 1500RPM and 3000 RPM calc eff at current RPM
+    
+    if isreal(v(i+1)) == 0
         disp('Complex error3 Less than 0 m/s')
         break
     end
@@ -284,7 +298,6 @@ min_speed = 6;
     state(i) = status;
           
 end
-
 %%
 
 if v(i) <= 0
@@ -307,7 +320,7 @@ for i = 1:1:total_points
     end
 end
 
-eff_c = 0.80;
+eff_c = 0.99;
 
 LCV_H = 120000; %kJ/kg
 p_H = 0.089949; %kg/m^3
@@ -362,7 +375,7 @@ p_G = 764.6; %kg/m^3
 NCV_G = 42900; %kJ/kg 
 Fuel_eff_gasoline = Fuel_eff*NCV_G*p_G/(p_H*LCV_H*1000); %km/l
 
-base_eff = 552.869;
+base_eff = 488.6;
 Eff_Impr = 100*(Fuel_eff - base_eff)/Fuel_eff;
 
 for i = 1:1:total_points
@@ -421,6 +434,9 @@ P_1 = P(1:(track_points));
 Fd_1 = Fd(1:(track_points)); 
 Fp_1 = Fp(1:(track_points));
 theta_1 = theta_2(1:(track_points));
+Tm_1 = Tm(1:(track_points));
+n_mtr_1 = n_mtr(1:(track_points));
+
 %Last lap plot data
 t_2 = t((total_points)-(track_points)+1:(total_points)-1);
 t_c_2 = [0,cumsum(t_2)];
@@ -447,295 +463,299 @@ for i = 1:1:total_length
 end
 Fb_1 = Fb(1:track_points);
 
+% 
+% % %Whole race
 % % 
-% % % %Whole race
-% % % 
-% % % subplot(2,2,1)
-% % % plot(t_c,v)
-% % % title('Velocity')
-% % % xlabel('Time (s)')
-% % % ylabel('Velocity (m/s)')
-% % % text(50,2,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% % % text(50,2.5,['Maximum time: ',num2str(max_time),' s']);
-% % % text(50,3,['Elapsed time: ',num2str(elapsed_t),' s']);
-% % % 
-% % % 
-% % % subplot(2,2,2)
-% % % plot(t_c,P)
-% % % title('Power')
-% % % xlabel('Time (s)')
-% % % ylabel('Power (W)')
-% % % 
-% % % subplot(2,2,3)
-% % % plot(t_c,elevation_2)
-% % % title('Elevation') 
-% % % xlabel('Time (s)')
-% % % ylabel('Elevation (m)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(t_c,Fd,t_c,Fp)
-% % % title('Resistive and Propulsive Force')
-% % % xlabel('Time (s)')
-% % % ylabel('Forces acting on the car (N)')
-% % % 
-% % % % %Whole race
-% % % figure 
-% % % subplot(2,2,1)
-% % % plot(d,v)
-% % % title('Velocity')
-% % % xlabel('d (m)')
-% % % ylabel('Velocity (m/s)')
-% % % text(400,2,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% % % text(400,2.5,['Maximum time: ',num2str(max_time),' s']);
-% % % text(400,3,['Elapsed time: ',num2str(elapsed_t),' s']);
-% % % 
-% % % 
-% % % subplot(2,2,2)
-% % % plot(d,P)
-% % % title('Power')
-% % % xlabel('d (m)')
-% % % ylabel('Power (W)')
-% % % 
-% % % subplot(2,2,3)
-% % % plot(d,elevation_2)
-% % % title('Elevation') 
-% % % xlabel('d (m)')
-% % % ylabel('Elevation (m)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(d,Fd,d,Fp)
-% % % title('Resistive and Propulsive Force')
-% % % xlabel('d (m)')
-% % % ylabel('Forces acting on the car (N)')
-% % 
-% % % % Motor data
-% % % 
-% % % subplot(2,2,1)
-% % % plot(n_motor,T_motor)
-% % % title('Motor')
-% % % xlabel('rpm')
-% % % ylabel('Nm')
-% % % 
-% % % subplot(2,2,2)
-% % % plot(n_wheel,T_wheel10)
-% % % title('Wheel')
-% % % xlabel('rpm')
-% % % ylabel('Nm')
-% % % 
-% % % subplot(2,2,3)
-% % % plot(n_wheel,v_wheel)
-% % % title('Velocity') 
-% % % xlabel('Wheel speed (rpm)')
-% % % ylabel('Wheel speed (m/s)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(v_wheel,P_wheel)
-% % % title('Power') 
-% % % xlabel('Wheel speed (m/s)')
-% % % ylabel('Wheel Power (W)')
-% % % 
-% % % %1st lap
-% % % 
-% % % figure
-% % % subplot(2,2,1)
-% % % plot(t_c_1,v_1)
-% % % title('Velocity')
-% % % xlabel('Time (s)')
-% % % ylabel('Velocity (kph)')
-% % % text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% % % text(50,10,['Maximum time: ',num2str(max_time),' s']);
-% % % text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
-% % % 
-% % % 
-% % % subplot(2,2,2)
-% % % plot(t_c_1,P_1)
-% % % title('Power')
-% % % xlabel('Time (s)')
-% % % ylabel('Power (W)')
-% % % 
-% % % subplot(2,2,3)
-% % % plot(t_c_1,elevation_1)
-% % % title('Elevation') 
-% % % xlabel('Time (s)')
-% % % ylabel('Elevation (m)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(t_c_1,Fd_1,t_c_1,Fp_1)
-% % % title('Resistive and Propulsive Force')
-% % % xlabel('Time (s)')
-% % % ylabel('Forces acting on the car (N)')
-% 
-% figure
-% subplot(2,2,1)
-% plot(d_1,v_1)
-% title('Velocity')
-% xlabel('Distance (m)')
-% ylabel('Velocity (m/s)')
-% text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% text(50,10,['Maximum time: ',num2str(max_time),' s']);
-% text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
-% 
-% 
-% subplot(2,2,2)
-% plot(d_1,P_1)
-% title('Power')
-% xlabel('Distance (m)')
-% ylabel('Power (W)')
-% 
-% subplot(2,2,3)
-% plot(d_1,elevation_1)
-% title('Elevation') 
-% xlabel('Distance (m)')
-% ylabel('Elevation (m)')
-% 
-% subplot(2,2,4)
-% plot(d_1,Fd_1,d_1,Fp_1)
-% title('Resistive and Propulsive Force')
-% xlabel('Distance (m)')
-% ylabel('Forces acting on the car (N)')
-% 
-% % % 
-% % % 
-% % % figure
-% % % subplot(2,2,1)
-% % % plot(d_1,v_1)
-% % % title('Velocity')
-% % % xlabel('Time (s)')
-% % % ylabel('Velocity (m/s)')
-% % % text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% % % text(50,10,['Maximum time: ',num2str(max_time),' s']);
-% % % text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
-% % % 
-% % % 
-% % % subplot(2,2,2)
-% % % plot(d_1,P_1)
-% % % title('Power')
-% % % xlabel('d (m)')
-% % % ylabel('Power (W)')
-% % % 
-% % % subplot(2,2,3)
-% % % plot(d_1,elevation_1)
-% % % title('Elevation') 
-% % % xlabel('d (m)')
-% % % ylabel('Elevation (m)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(d_1,Fd_1,d_1,Fp_1)
-% % % title('Resistive and Propulsive Force')
-% % % xlabel('d (m)')
-% % % ylabel('Forces acting on the car (N)')
-% % 
-% % % %Last lap
-% % % 
-% % figure
 % % subplot(2,2,1)
-% % plot(t_c_2,v_2)
+% % plot(t_c,v)
 % % title('Velocity')
 % % xlabel('Time (s)')
-% % ylabel('Velocity (kph)')
-% % text(100,35,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% % text(100,37,['Maximum time: ',num2str(max_time),' s']);
-% % text(100,39,['Elapsed time: ',num2str(elapsed_t),' s']);
-% % % 
-% % % subplot(2,2,2)
-% % % plot(t_c_2,P_2)
-% % % title('Power at wheels')
-% % % xlabel('Time (s)')
-% % % ylabel('Power at wheels (W)')
-% % % 
-% % % subplot(2,2,3)
-% % % plot(t_c_2,elevation_1)
-% % % title('Elevation') 
-% % % xlabel('Time (s)')
-% % % ylabel('Elevation (m)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(t_c_2,Fd_2,t_c_2,Fp_2)
-% % % title('Resistive and Propulsive Force')
-% % % xlabel('Time (s)')
-% % % ylabel('Forces acting on the car (N)')
-% % % % 
-% % % % 
-% % % %Last lap
-% % % % 
-% % % 
-% % % 
-% % figure
+% % ylabel('Velocity (m/s)')
+% % text(50,2,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% % text(50,2.5,['Maximum time: ',num2str(max_time),' s']);
+% % text(50,3,['Elapsed time: ',num2str(elapsed_t),' s']);
 % % 
+% % 
+% % subplot(2,2,2)
+% % plot(t_c,P)
+% % title('Power')
+% % xlabel('Time (s)')
+% % ylabel('Power (W)')
+% % 
+% % subplot(2,2,3)
+% % plot(t_c,elevation_2)
+% % title('Elevation') 
+% % xlabel('Time (s)')
+% % ylabel('Elevation (m)')
+% % 
+% % subplot(2,2,4)
+% % plot(t_c,Fd,t_c,Fp)
+% % title('Resistive and Propulsive Force')
+% % xlabel('Time (s)')
+% % ylabel('Forces acting on the car (N)')
+% % 
+% % % %Whole race
+% % figure 
 % % subplot(2,2,1)
-% % plot(d_1,v_2)
+% % plot(d,v)
 % % title('Velocity')
 % % xlabel('d (m)')
 % % ylabel('Velocity (m/s)')
-% % text(400,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
-% % text(400,10,['Maximum time: ',num2str(max_time),' s']);
-% % text(400,15,['Elapsed time: ',num2str(elapsed_t),' s']);
+% % text(400,2,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% % text(400,2.5,['Maximum time: ',num2str(max_time),' s']);
+% % text(400,3,['Elapsed time: ',num2str(elapsed_t),' s']);
+% % 
 % % 
 % % subplot(2,2,2)
-% % plot(d_1,P_2)
-% % title('Power at wheels')
+% % plot(d,P)
+% % title('Power')
 % % xlabel('d (m)')
-% % ylabel('Power at wheels (W)')
+% % ylabel('Power (W)')
+% % 
+% % subplot(2,2,3)
+% % plot(d,elevation_2)
+% % title('Elevation') 
+% % xlabel('d (m)')
+% % ylabel('Elevation (m)')
+% % 
+% % subplot(2,2,4)
+% % plot(d,Fd,d,Fp)
+% % title('Resistive and Propulsive Force')
+% % xlabel('d (m)')
+% % ylabel('Forces acting on the car (N)')
+% 
+% % % Motor data
+% % 
+% % subplot(2,2,1)
+% % plot(n_motor,T_motor)
+% % title('Motor')
+% % xlabel('rpm')
+% % ylabel('Nm')
+% % 
+% % subplot(2,2,2)
+% % plot(n_wheel,T_wheel10)
+% % title('Wheel')
+% % xlabel('rpm')
+% % ylabel('Nm')
+% % 
+% % subplot(2,2,3)
+% % plot(n_wheel,v_wheel)
+% % title('Velocity') 
+% % xlabel('Wheel speed (rpm)')
+% % ylabel('Wheel speed (m/s)')
+% % 
+% % subplot(2,2,4)
+% % plot(v_wheel,P_wheel)
+% % title('Power') 
+% % xlabel('Wheel speed (m/s)')
+% % ylabel('Wheel Power (W)')
+% % 
+% % %1st lap
+% % 
+% % figure
+% % subplot(2,2,1)
+% % plot(t_c_1,v_1)
+% % title('Velocity')
+% % xlabel('Time (s)')
+% % ylabel('Velocity (kph)')
+% % text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% % text(50,10,['Maximum time: ',num2str(max_time),' s']);
+% % text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
+% % 
+% % 
+% % subplot(2,2,2)
+% % plot(t_c_1,P_1)
+% % title('Power')
+% % xlabel('Time (s)')
+% % ylabel('Power (W)')
+% % 
+% % subplot(2,2,3)
+% % plot(t_c_1,elevation_1)
+% % title('Elevation') 
+% % xlabel('Time (s)')
+% % ylabel('Elevation (m)')
+% % 
+% % subplot(2,2,4)
+% % plot(t_c_1,Fd_1,t_c_1,Fp_1)
+% % title('Resistive and Propulsive Force')
+% % xlabel('Time (s)')
+% % ylabel('Forces acting on the car (N)')
+
+figure
+subplot(2,2,1)
+plot(d_1,v_1)
+title('Velocity')
+xlabel('Distance (m)')
+ylabel('Velocity (m/s)')
+text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+text(50,10,['Maximum time: ',num2str(max_time),' s']);
+text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
+
+
+subplot(2,2,2)
+plot(d_1,P_1)
+title('Power')
+xlabel('Distance (m)')
+ylabel('Power (W)')
+
+subplot(2,2,3)
+plot(d_1,elevation_1)
+title('Elevation') 
+xlabel('Distance (m)')
+ylabel('Elevation (m)')
+
+subplot(2,2,4)
+plot(d_1,Fd_1,d_1,Fp_1)
+title('Resistive and Propulsive Force')
+xlabel('Distance (m)')
+ylabel('Forces acting on the car (N)')
+
+% % 
+% % 
+% % figure
+% % subplot(2,2,1)
+% % plot(d_1,v_1)
+% % title('Velocity')
+% % xlabel('Time (s)')
+% % ylabel('Velocity (m/s)')
+% % text(50,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% % text(50,10,['Maximum time: ',num2str(max_time),' s']);
+% % text(50,15,['Elapsed time: ',num2str(elapsed_t),' s']);
+% % 
+% % 
+% % subplot(2,2,2)
+% % plot(d_1,P_1)
+% % title('Power')
+% % xlabel('d (m)')
+% % ylabel('Power (W)')
 % % 
 % % subplot(2,2,3)
 % % plot(d_1,elevation_1)
 % % title('Elevation') 
 % % xlabel('d (m)')
 % % ylabel('Elevation (m)')
-% % % 
-% % % subplot(2,2,4)
-% % % plot(d_1,Fd_2,d_1,Fp_2)
-% % % title('Resistive and Propulsive Force')
-% % % xlabel('d (m)')
-% % % ylabel('Forces acting on the car (N)')
 % % 
-% % % Braking Forces
-% % figure
-% % plot(d_1,Fb_1)
-% % title('Braking Force around Track')
+% % subplot(2,2,4)
+% % plot(d_1,Fd_1,d_1,Fp_1)
+% % title('Resistive and Propulsive Force')
 % % xlabel('d (m)')
-% % ylabel('Braking Force at Wheels (N)')
+% % ylabel('Forces acting on the car (N)')
+% 
+% % %Last lap
+% % 
+% figure
+% subplot(2,2,1)
+% plot(t_c_2,v_2)
+% title('Velocity')
+% xlabel('Time (s)')
+% ylabel('Velocity (kph)')
+% text(100,35,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% text(100,37,['Maximum time: ',num2str(max_time),' s']);
+% text(100,39,['Elapsed time: ',num2str(elapsed_t),' s']);
+% % 
+% % subplot(2,2,2)
+% % plot(t_c_2,P_2)
+% % title('Power at wheels')
+% % xlabel('Time (s)')
+% % ylabel('Power at wheels (W)')
+% % 
+% % subplot(2,2,3)
+% % plot(t_c_2,elevation_1)
+% % title('Elevation') 
+% % xlabel('Time (s)')
+% % ylabel('Elevation (m)')
+% % 
+% % subplot(2,2,4)
+% % plot(t_c_2,Fd_2,t_c_2,Fp_2)
+% % title('Resistive and Propulsive Force')
+% % xlabel('Time (s)')
+% % ylabel('Forces acting on the car (N)')
+% % % 
+% % % 
+% % %Last lap
+% % % 
+% % 
+% % 
+% figure
+% 
+% subplot(2,2,1)
+% plot(d_1,v_2)
+% title('Velocity')
+% xlabel('d (m)')
+% ylabel('Velocity (m/s)')
+% text(400,5,['Fuel efficiency: ',num2str(Fuel_eff),' km/m^3'])
+% text(400,10,['Maximum time: ',num2str(max_time),' s']);
+% text(400,15,['Elapsed time: ',num2str(elapsed_t),' s']);
+% 
+% subplot(2,2,2)
+% plot(d_1,P_2)
+% title('Power at wheels')
+% xlabel('d (m)')
+% ylabel('Power at wheels (W)')
+% 
+% subplot(2,2,3)
+% plot(d_1,elevation_1)
+% title('Elevation') 
+% xlabel('d (m)')
+% ylabel('Elevation (m)')
+% % 
+% % subplot(2,2,4)
+% % plot(d_1,Fd_2,d_1,Fp_2)
+% % title('Resistive and Propulsive Force')
+% % xlabel('d (m)')
+% % ylabel('Forces acting on the car (N)')
+% 
+% % Braking Forces
+% figure
+% plot(d_1,Fb_1)
+% title('Braking Force around Track')
+% xlabel('d (m)')
+% ylabel('Braking Force at Wheels (N)')
+
+figure
+plot(d_1,Fd_2,d_1,Fp_2,d_1,Fb_1)
+title('Resistive and Propulsive Force')
+xlabel('d (m)')
+ylabel('Forces acting on the car (N)')
+% 
+% % % % 
+% % 
+% % hill_total = 0;
+% % for i = 16000:1:16589
+% %     hill = E_H(i)*eff_m(i)*eff_h;
+% %     hill_total = hill_total + hill;
+% % end
 % 
 % figure
-% plot(d_1,Fd_2,d_1,Fp_2,d_1,Fb_1)
-% title('Resistive and Propulsive Force')
+% plot(d,P_FC)
+% title('Fuel Cell Power Demand Along Track')
 % xlabel('d (m)')
-% ylabel('Forces acting on the car (N)')
-% % 
-% % % % % 
-% % % 
-% % % hill_total = 0;
-% % % for i = 16000:1:16589
-% % %     hill = E_H(i)*eff_m(i)*eff_h;
-% % %     hill_total = hill_total + hill;
-% % % end
-% % 
-% % figure
-% % plot(d,P_FC)
-% % title('Fuel Cell Power Demand Along Track')
-% % xlabel('d (m)')
-% % ylabel('Power Demand from Fuel Cell (W)')
-% 
-% % figure
-% % plot(d(1:total_points-1),Fuel_flow)
-% % title('Fuel Flow Along Track')
-% % xlabel('d (m)')
-% % ylabel('Fuel Flow (l/min)')
-% 
-% % % Motor efficiency
-% % figure
-% % plot((min_T:0.01:max_T)
+% ylabel('Power Demand from Fuel Cell (W)')
 
-for i = 1:1:total_points
-    RPM(i) = v(i) / (2 * pi * r_wheel) * 60;
-    n_whl(i) = v(i) * (60/(2*pi)) / r_wheel;
-    n_mtr(i) = n_whl(i) * G;
-    Wheel_T(i) = 60 * P(i) / (2 * pi* RPM(i));
-end
+% figure
+% plot(d(1:total_points-1),Fuel_flow)
+% title('Fuel Flow Along Track')
+% xlabel('d (m)')
+% ylabel('Fuel Flow (l/min)')
 
-% Find velocity of i
-% Calculate RPM from velocity
-% Calculate torque from RPM and P at wheels
+% % Motor efficiency
+% figure
+% plot((min_T:0.01:max_T)
+
+figure
+subplot(2,2,1)
+plot(d_1,Tm_1)
+title('Torque Over First Lap')
+xlabel('Distance (m)')
+ylabel('Torque (Nm)')
+
+subplot(2,2,2)
+plot(d_1,n_mtr_1)
+title('Motor RPM Over First Lap')
+xlabel('Distance (m)')
+ylabel('RPM (rev/min)')
+
+
     
     
     
