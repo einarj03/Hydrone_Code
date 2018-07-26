@@ -15,6 +15,7 @@ import Threads as Thrd
 import serial
 import math
 import minimalmodbus
+import pynmea2
 
 from datetime import datetime
 
@@ -53,7 +54,7 @@ class DataManager():
     rwThread = False
     isCarVersion = True
     # reportTest = True
-    emulate_gps = True
+    emulate_gps = False
     _isFlowLoggin = False
 
     # If the program is running on the raspberry pi then set the flow meter and 
@@ -67,28 +68,34 @@ class DataManager():
             # device_location is different for RPi
             # Command to find serial ports
             # python -m serial.tools.list_ports
-            device_location = '/dev/ttyUSB0'
-
-            flowMeter = minimalmodbus.Instrument(device_location, 1)
+            flowMeterLocation = '/dev/ttyUSB0'
+            flowMeter = minimalmodbus.Instrument(flowMeterLocation, 1)
             flowMeter.address = 247
 
-        ser = serial.Serial('/dev/ttyACM0', 9600, 8, 'N', 1, timeout=5)
+        ardiunoLocation = '/dev/ttyACM0'
+        arduinoSerial = serial.Serial(ardiunoLocation, 9600, 8, 'N', 1, timeout=5)
+
+        if _gpsSession:
+            gps_device_location = '/dev/ttyACM1'
+            gpsSerial = serial.Serial(gps_device_location, 9600, stopbits=2)  # open serial port
+            streamreader = pynmea2.NMEAStreamReader()
 
         folderDir = "/home/pi/Desktop/RunData/RunData_"+time.strftime("%d-%m-%y")+'/'
         fileName = "data_log.csv"
 
     # only start the gps session if we are not emulating the gps
-    if not (isEmulate or emulate_gps): 
-        global gpsSession
-        gpsSession = gpsdExporter.GpsPoller()
-        gpsSession.start()
+    # if not (isEmulate or emulate_gps): 
+    #     global gpsSession
+    #     gpsSession = gpsdExporter.GpsPoller()
+    #     gpsSession.start()
     
     # Calcaulted variabels
     lineCrossTimes = []
 
     # For debugging on the computer, set the number of different variables normally 
     # recieved from the arduino
-    numOfArduinoData = 4
+    global numOfArduinoData
+    numOfArduinoData = 6
 
     emuPosI = 0
     emuPosI1 = 0
@@ -97,7 +104,8 @@ class DataManager():
     @classmethod
     def getTrackData(self, colName = False):
         if DataManager._trackFile is False:
-            DataManager._trackFile = np.loadtxt('trackPoints.csv', delimiter=',')
+            DataManager._trackFile = np.loadtxt('map_coords.csv', delimiter=',')
+            # DataManager._trackFile = np.loadtxt('trackPoints.csv', mode='r', delimiter=',')
             
         #1 - 'Index' -  Index, for usefullness
         #2,3 - 'LongLat' - GPS Long and Lat
@@ -114,8 +122,8 @@ class DataManager():
     # uses the current position along the track and the current speed to 
     # determine the necessary Control Action
     @classmethod
-    def ControlAction(self, speed):
-        gpsID = DataManager.getPosID()
+    def ControlAction(self, speed, gpsLL):
+        gpsID = DataManager.getPosID(gpsLL)
         # speed = DataManager.getGPSSpeed()
 
         # first corner pulse
@@ -206,15 +214,15 @@ class DataManager():
     def getArduinoDataString(self):
         # Only attempt to read the arduino data if this is the RPi
         if isRaspberryPi:
-            dataString = DataManager.ser.readline()
-            while dataString.count(',', 1) != numOfArduinoData - 1:
+            dataString = DataManager.arduinoSerial.readline()
+            while dataString.count(',') != numOfArduinoData - 1:
                     # carry on reading a line from serial until all the data came through correctly
-                    dataString = DataManager.ser.readline()
+                    dataString = DataManager.arduinoSerial.readline()
         # Otherwise, make a simulated dataString
         else:
             dataString = ""
-            for i in range(1, DataManager.numOfArduinoData + 1):
-                if i < DataManager.numOfArduinoData:
+            for i in range(1, numOfArduinoData + 1):
+                if i < numOfArduinoData:
                     dataString = dataString + str(i) + ","
                 else:
                     dataString = dataString + str(i)
@@ -223,30 +231,45 @@ class DataManager():
 
     @classmethod
     def beginSerialReading(self):
+        print("test")
         # Only attempt to read the arduino data if this is the RPi
         if isRaspberryPi:
-            serialTest = DataManager.ser.readline()
+            serialTest = DataManager.arduinoSerial.readline()
             # if there are at least 3 commas starting from the second char within the string
             # then all 4 peices of data have come through
             for i in range(1,30):
-                while serialTest.count(',', 1) != 3:
+                while serialTest.count(',', 1) != numOfArduinoData - 1:
                     # carry on reading a line from serial until all the data came through correctly
-                    serialTest = DataManager.ser.readline()
+                    serialTest = DataManager.arduinoSerial.readline()
+                    print(serialTest)
                 i += 1
+        else:
+            print('test')
+            serialTest = "500,0,0,0,0"
+            # if there are at least 3 commas starting from the second char within the string
+            # then all 4 peices of data have come through
+            for i in range(1,30):
+                serialTest = "500,0,0,0,0,0"
+                if serialTest.count(',', 1) == numOfArduinoData - 1:
+                    # carry on reading a line from serial until all the data came through correctly
+                    i += 1
+                    print("test" + str(i))
+                    print(serialTest.count(',', 1) == numOfArduinoData - 1)
 
 
     @classmethod
     def getArduinoData(self, dataString, desiredData):
-        time_diff, A0, A1, n_pings = dataString.split(',')
+        time_diff, A0, A1, n_pings, hi_pressure_reading, lo_pressure_reading = dataString.split(',')
         time_diff = float(time_diff)
         n_pings = float(n_pings)
-        A0 = float(A0)
-        A1 = float(A1)
             
         secondsPerMin = 60
         millisPerS = 1000
         pingsPerRev = 6
         wheelRadius = 0.239
+        inputRange = 1023
+        max_voltage = 5
+        voltage_scale = 26
 
         if desiredData == 'RPM':
             RPM = secondsPerMin*millisPerS/(time_diff)*(n_pings/pingsPerRev)
@@ -267,16 +290,33 @@ class DataManager():
                 Vsc = random.uniform(15,30)
             else:
                 # Super capacitor voltage
-
+                A0 = float(A0)
                 # A0 outputs values between 0-1023 for a voltage range of 0-5V
                 # The resistor setup reduces the read voltage by a factor of 26
-                Vsc = A0 * 5 * 26 / 1023
+                Vsc = A0 * max_voltage * voltage_scale / inputRange
             return round(Vsc, 1)
 
         elif desiredData == 'Vmain':
             # Mainline voltage
-            Vmain = A1 * 5 * 26 / 1023
+            A1 = float(A1)
+            Vmain = A1 * max_voltage * voltage_scale / inputRange
             return round(Vmain, 1)
+
+        elif desiredData == 'HiPres':
+            # High Pressur
+            max_pressure = 250
+            hi_pressure_reading = float(hi_pressure_reading)
+            hi_pressure = hi_pressure_reading * max_pressure / inputRange
+            return round(hi_pressure, 0)
+
+        elif desiredData == 'LoPres':
+            # Low Pressure
+            min_voltage = 1
+            barPerVolt = 0.25
+            lo_pressure_reading = float(lo_pressure_reading)
+            lo_pressure = (lo_pressure_reading * max_voltage / inputRange - min_voltage) * barPerVolt
+            return round(lo_pressure, 2)
+
 
 
     # gets the speed using Hall sensors
@@ -298,12 +338,30 @@ class DataManager():
     # (currently not in use)
     @classmethod
     def getGPSReport(self):
-        if DataManager._gpsSession is False:
+        if DataManager._gpsSession:
+            print("_gpsSession is " + str(DataManager._gpsSession))
+            DataManager.gpsData = DataManager.gpsSerial.readline().decode().strip()
+            while True:
+                DataManager.gpsData = DataManager.gpsSerial.readline().decode().strip()
+                try:
+                    DataManager.gpsSession = pynmea2.parse(DataManager.gpsData)
+                    try:
+                        tempVar = DataManager.gpsSession.latitude
+                        tempVar2 = DataManager.gpsSession.longitude
+                        break
+
+                    except AttributeError:
+                        continue
+                except:
+                    continue
+
+        else:
             #This starts a thread which self connects
-            DataManager._gpsSession = Thrd.GpsPoller()
-            DataManager._gpsSession.start()
+            # DataManager._gpsSession = Thrd.GpsPoller()
+            # # DataManager._gpsSession.start()
+            DataManager.gpsSession = pynmea2.GGA('GP', 'GGA', ('184353.07', '1929.045', 'S', '02410.506', 'E', '1', '04', '2.6', '100.00', 'M', '-33.9', 'M', '', '0000'))
         
-        return DataManager._gpsSession.curReport
+        return DataManager.gpsSession
     
     @classmethod
     def getSim(self):
@@ -349,7 +407,7 @@ class DataManager():
 
     # returns the current LongLat coordinates of the gps
     @classmethod
-    def getGPSPos(self):
+    def getGPSPos(self, gpsData):
         if DataManager.isEmulate or DataManager.emulate_gps:
             # emulates the location by moving the icon forward 4 points every iteration
             LL = DataManager.getTrackData('LongLat')
@@ -362,7 +420,7 @@ class DataManager():
 
         else:
             # print "GPS Coords: ", str([gpsSession.longitude, gpsSession.latitude])
-            return [gpsSession.longitude, gpsSession.latitude]
+            return [gpsData.longitude, gpsData.latitude]
                 
         return None
     
@@ -370,8 +428,8 @@ class DataManager():
     # in the track data file. This is to be able to display the driver's icon
     # on the map
     @classmethod
-    def getPosID(self):
-        LongLat = DataManager.getGPSPos()
+    def getPosID(self, LongLat):
+        # LongLat = self.getGPSPos()
         TrackLongLat = DataManager.getTrackData('LongLat')
         
         Dif = np.absolute(np.subtract(LongLat, TrackLongLat))
@@ -388,39 +446,6 @@ class DataManager():
             return gpsSession.speed
         
         return None
-    
-    # use the GPIO inputs to determine the SuperCapacitor status
-    @classmethod
-    def getSCstatus(self):
-        if DataManager.isEmulate:
-            return 7
-        else:
-            if GPIO.input(12)==0 and GPIO.input(13)==0 and GPIO.input(14)==0 and GPIO.input(19)==1:
-                            # print "X < 12 V"
-                            return 1
-            if GPIO.input(12)==1 and GPIO.input(13)==1 and GPIO.input(14)==0 and GPIO.input(19)==0:
-                            # print "12<= X <=15"
-                            return 2
-            if GPIO.input(12)==1 and GPIO.input(13)==0 and GPIO.input(14)==1 and GPIO.input(19)==0:
-                            # print "15< X <=18"
-                            return 3
-            if GPIO.input(12)==0 and GPIO.input(13)==1 and GPIO.input(14)==1 and GPIO.input(19)==0:
-                            # print "18< X <=21"
-                            return 4
-            if GPIO.input(12)==0 and GPIO.input(13)==0 and GPIO.input(14)==1 and GPIO.input(19)==0:
-                            # print "21< X <=24"
-                            return 5
-            if GPIO.input(12)==0 and GPIO.input(13)==1 and GPIO.input(14)==0 and GPIO.input(19)==0:
-                            # print "24< X <=27"
-                            return 6
-            if GPIO.input(12)==1 and GPIO.input(13)==0 and GPIO.input(14)==0 and GPIO.input(19)==0:
-                            # print "27< X <=30"
-                            return 7
-            if GPIO.input(12)==1 and GPIO.input(13)==1 and GPIO.input(14)==1 and GPIO.input(19)==0:
-                            # print "X >=30"
-                            return 8
-            else:
-                pass
     
     # (currently not in use) 
     @classmethod
@@ -460,12 +485,14 @@ class DataManager():
 
             # if the file is empty, then add the headings
             if os.stat(DataManager.folderDir + DataManager.fileName).st_size == 0:
-                file.write("Date,Time,RPM,Speed,Vsc,Vmain,Gas Flow,Total Flow,Longitude,Latitude,Altitude,Climb\n")
+                file.write("Date (dd/mm/yyyy),Time (HH:MM:SS),Speed (RPM),Speed (m/s),Vsc (V),Vmain (V),High Pressure (bar),Low Pressure (bar),Gas Flow (l/min),Total Flow (l),Longitude,Latitude,Altitude,Climb\n")
 
             RPM = DataManager.getArduinoData(dataString, 'RPM')
             speed = DataManager.getArduinoData(dataString, 'Speed')
             Vsc = DataManager.getArduinoData(dataString, 'Vsc')
             Vmain = DataManager.getArduinoData(dataString, 'Vmain')
+            hi_pressure = DataManager.getArduinoData(dataString, 'HiPres')
+            lo_pressure = DataManager.getArduinoData(dataString, 'LoPres')
             gasFlow = DataManager.readGasFlow()
             totalFlow = DataManager.readTotalFlow()
 
@@ -476,6 +503,8 @@ class DataManager():
             file.write(str(speed) + ",")
             file.write(str(Vsc) + ",")
             file.write(str(Vmain) + ",")
+            file.write(str(hi_pressure) + ",")
+            file.write(str(lo_pressure) + ",")
             file.write(str(gasFlow) + ",")
             file.write(str(totalFlow) + ",")
 
@@ -495,31 +524,16 @@ class DataManager():
 
     @classmethod
     def startLog(self):  
-        #Make sure previous one is stopped
-        # DataManager.test = True
-        # DataManager.stopLog()
         
         DataManager.isRecording = True
 
-        # DataManager.rwThread = Thrd.RWThread()
-        # DataManager.isRecording = True
-        # DataManager.rwThread.start()
        
     # stops the ideal lap icon from showing 
     @classmethod
     def stopLog(self):
 
         DataManager.isRecording = False
-        # DataManager.idealLap = False
 
-##        DataManager.isRecording = False
-##        if DataManager.rwThread is not False:
-##            DataManager.rwThread.cancel()
-##
-##        if DataManager._dataFile is not False:
-##            DataManager._dataFile.close()
-##            DataManager._dataFile = False
-##            print("File closed")
             
     @classmethod
     def swapLog(self):

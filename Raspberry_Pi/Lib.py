@@ -24,6 +24,10 @@ class DashGUI:
         self.splitTimes = [StringVar(),StringVar(),StringVar(),StringVar(),StringVar()]
         self.CA=[]
         self.SC=[]
+        self.HighPressure = StringVar()
+        self.LowPressure = StringVar()
+        self.TotalFlow = StringVar()
+
 
         #Fonts
         sectionTitle = tkFont.Font(family = 'Helvetica', size = 30, weight = 'bold')
@@ -65,12 +69,20 @@ class DashGUI:
         #Super Capacitor Status 
 #        Label(self.labelSect, text="Super Caps", font=(None,12), bg='black', fg='white').grid(row=3, columnspan=3)
        
-        self.labelSC1 = Label(self.labelSect, text="Danger", textvariable=self.SC,font=(None,20), bg='black', fg='white')
+        self.labelSC1 = Label(self.labelSect, text="Low", textvariable=self.SC,font=(None,20), bg='black', fg='white')
         self.labelSC1.grid(row=3, columnspan=2)
         self.labelSC2 = Label(self.labelSect, text="Moderate", textvariable=self.SC,font=(None,20),  bg='black', fg='white')
         self.labelSC2.grid(row=4, column=0,  columnspan=2)
         self.labelSC3 = Label(self.labelSect, text="Charged", textvariable=self.SC, font=(None,20), bg='black', fg='white')
         self.labelSC3.grid(row=5, columnspan=2)
+
+        self.labelHiPressure = Label(self.labelSect, text="High Pressure", textvariable=self.HighPressure, font=(None,20), bg='black', fg='white')
+        self.labelHiPressure.grid(row=3,column=8, columnspan=2, sticky=N+W)
+        self.labelLoPressure = Label(self.labelSect, text="High Pressure", textvariable=self.LowPressure, font=(None,20), bg='black', fg='white')
+        self.labelLoPressure.grid(row=4,column=8, columnspan=2, sticky=N+W)
+
+        self.labelTotFlow = Label(self.labelSect, text="Total Flow", textvariable=self.TotalFlow, font=(None,20), bg='black', fg='white')
+        self.labelTotFlow.grid(row=5,column=8, columnspan=2, sticky=N+W)
         
 
 #         self.labelSC3 = Label(self.labelSect, text="SC1", textvariable=self.SC, font=(None,5),height=3, width=3, bg='black', fg='white')
@@ -109,8 +121,12 @@ class DashGUI:
         mapPlot.plotMap()
         
         mapPlot.startPosTracking()
-
+        
         DM.DataManager.beginSerialReading()
+
+        print("I made it out!")
+
+        starting_total_flow = DM.DataManager.readTotalFlow()
 
         self.update() # starts the update loop
         
@@ -127,16 +143,24 @@ class DashGUI:
         else:
             self.Speed.set("-")
         
+        hi_pressure = DM.DataManager.getArduinoData(dataString, 'HiPres')
+        lo_pressure = DM.DataManager.getArduinoData(dataString, 'LoPres')
+        self.HighPressure.set("Hi P: %g" % hi_pressure + " bar")
+        self.LowPressure.set("Lo P: %g" % lo_pressure + " bar")
+
+        total_flow = DM.DataManager.readTotalFlow()
+        self.TotalFlow.set("H2 Cons: %g" % total_flow + " l")
+
         SC = DM.DataManager.getArduinoData(dataString, 'Vsc') 
         self.speedSlide.set(SC)
 
-        if SC < 15:
+        if SC < 17:
 #           self.labelSC1["text"] = "Charging"
             self.labelSC1["background"] = "red"
             self.labelSC2["background"] = "black"
             self.labelSC3["background"] = "black"
   
-        elif SC >= 15 and SC < 27:
+        elif SC >= 17 and SC < 26:
 #            self.labelSC1["text"] = "Discharging"
             self.labelSC1["background"] = "black"
             self.labelSC2["background"] = "orange"
@@ -148,7 +172,11 @@ class DashGUI:
             self.labelSC2["background"] = "black"
             self.labelSC3["background"] = "green"
 
-        if DM.DataManager.ControlAction(speed):
+        gpsData = DM.DataManager.getGPSReport()
+        gpsLL = DM.DataManager.getGPSPos(gpsData)
+        posI = DM.DataManager.getPosID(gpsLL)
+
+        if DM.DataManager.ControlAction(speed, gpsLL):
             self.labelCA["text"] = "BOOST"
             self.labelCA["background"] = "blue"
         else:
@@ -161,8 +189,8 @@ class DashGUI:
                 split = DM.DataManager.lineCrossTimes[i-1] - Val
                 self.splitTimes[i-1].set("%gs" % round(split,3))
             i += 1
-            
-        posI = DM.DataManager.getPosID()
+        
+        
         # posI1 = DM.DataManager.getPosID1()
         
 #        simData = DM.DataManager.getSim()
@@ -212,6 +240,12 @@ class MiniMap(Canvas):
         
         self.xTrans = minInDir[0] * -1
         self.yTrans = minInDir[1] * -1
+
+        # self.xTrans = data['Long'].min() * -1
+        # # self.yTrans = data['Lat'].min() * -1
+        # data['Long'] += self.xTrans
+        # # data['Lat'] += self.yTrans
+
         data[:,0] += self.xTrans
         data[:,1] += self.yTrans
         
@@ -260,14 +294,15 @@ class MiniMap(Canvas):
                 else:
                     self.coords(self.posPoint1, (Long-10, Lat-10, Long+10, Lat+10))
 
-        gpsLL = DM.DataManager.getGPSPos()
+        gpsData = DM.DataManager.getGPSReport()
+        gpsLL = DM.DataManager.getGPSPos(gpsData)
+        
         if gpsLL is not None:
 
-            gpsPos = DM.DataManager.getPosID()
+            gpsPos = DM.DataManager.getPosID(gpsLL)
             trackLLData = DM.DataManager.getTrackData("LongLat")
-
             trackLL = [trackLLData[gpsPos,0],trackLLData[gpsPos,1]]
-
+            # print(trackLL)
             LongLat = self.posToPixel(trackLL)
             Long = LongLat[0,0]
             Lat = LongLat[0,1]

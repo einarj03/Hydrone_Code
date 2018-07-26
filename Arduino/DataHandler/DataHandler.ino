@@ -1,5 +1,10 @@
 //Var For Speedmeter
 // used to store fraction of revolution
+// include the LCD library code:
+#include <LiquidCrystal.h>
+
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(12, 11, 5, 13, 10, 8);
 
 volatile byte detect_nth_ping = 0;
 
@@ -18,6 +23,9 @@ unsigned int max_log_interval = 500;
 unsigned int min_log_interval = 100;
 const byte interruptPin = 2;
 
+unsigned long highPressure = 0;
+unsigned long lowPressure = 0;
+
 void setup()
 {
   Serial.begin(9600);
@@ -28,6 +36,13 @@ void setup()
   lastrpmtime = 0;
   lastlogtime = 0;
 
+// set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+
+  lcd.print("LCD Activated");
+  delay(3000);
+  lcd.clear();
+
 }
 void loop()//Measure RPM
 {
@@ -36,21 +51,16 @@ void loop()//Measure RPM
 //    String rpmstring = String(rpm);
 
     Serial.print(millis() - lastrpmtime);
-    Serial.print(",");
-//    voltage reading    
+    Serial.print(",");    
     Serial.print(analogRead(A0)); 
     Serial.print(",");
-//    voltage reading
     Serial.print(analogRead(A1));
     Serial.print(",");
-    
     Serial.print(detect_nth_ping);
     Serial.print(",");
-//    hi pressure reading
-    Serial.print(analogRead(A2)); 
+    Serial.print(highPressure);
     Serial.print(",");
-//    lo pressure reading
-    Serial.print(analogRead(A3));
+    Serial.print(lowPressure);
     Serial.println();
 
     lastrpmtime = millis();
@@ -61,7 +71,28 @@ void loop()//Measure RPM
     }
     
     lastlogtime = millis();
+
+    
   }
+//  LCD is first cleared of earlier messages
+  lcd.clear(); 
+
+//  tells the LCD to start writing from column 0, row 0
+  lcd.setCursor(0, 0);   
+
+//  prints high pressure to the LCD 
+  lcd.print("HP: ");
+  lcd.print(highPressure);
+  lcd.print("bar");  
+
+// set the cursor to column 0, line 1
+  lcd.setCursor(0, 1);
+
+//  prints low pressure to the LCD
+  lcd.print("LP: ");
+  lcd.print(lowPressure);
+  lcd.print("bar");
+  
 }
 void wheel_detect()//This function is called whenever a magnet/interrupt is detected by the arduino
 {

@@ -1,4 +1,10 @@
-from tkinter import Tk
+import DataManager as DM
+
+if DM.isRaspberryPi:
+    from Tkinter import Tk
+else:
+    from tkinter import Tk
+
 import Lib
 
 #Setup the various cycle times

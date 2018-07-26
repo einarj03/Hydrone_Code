@@ -1,0 +1,8 @@
+wait_for_sensor:
+H2_sensor = getvalue(_DIN, 5)
+if H2_sensor = 0 then
+	goto wait_for_sensor
+end if
+
+setcommand(_EX, 1)
+

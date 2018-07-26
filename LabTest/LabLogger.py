@@ -14,13 +14,16 @@ minimalmodbus.stopbits = 2
 
 # Command to find serial ports
 # python -m serial.tools.list_ports
-flow_device_location = '/dev/cu.usbserial-14240'
+
+flow_device_location = '/dev/cu.usbserial-1420'
 flow_reader_address = 247
 
 dynaLoad_location = '/dev/cu.usbmodem1411'
 dynaLoad_address = 0
 
 connection_error = ""
+flow_error = ""
+dynaLoad_error = ""
 
 if os.path.exists(flow_device_location):
 	flow_reader = minimalmodbus.Instrument(flow_device_location, flow_reader_address)
